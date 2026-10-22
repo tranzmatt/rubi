@@ -27,7 +27,7 @@ for (let d = projeto; ; d = path.dirname(d)) {
 // Memória automática do projeto (só as primeiras ~200 linhas do MEMORY.md entram)
 const slugProj = projeto.replace(/[^A-Za-z0-9]/g, '-');
 const memoria = ler(path.join(CLAUDE, 'projects', slugProj, 'memory', 'MEMORY.md'));
-if (memoria != null) add('Memória', 'MEMORY.md', memoria.split('\n').slice(0, 200).join('\n'));
+if (memoria != null) add('Memory', 'MEMORY.md', memoria.split('\n').slice(0, 200).join('\n'));
 
 // Skills: só nome + descrição entram no contexto
 function descricoesSkills(raiz, grupo) {
@@ -49,8 +49,8 @@ function descricoesSkills(raiz, grupo) {
   if (n) itens.push({ grupo: 'Skills', nome: `${grupo} (${n} skills)`, tokens: tok(chars) });
 }
 descricoesSkills(path.join(CLAUDE, 'skills'), '~/.claude/skills');
-if (path.join(projeto, '.claude') !== CLAUDE) descricoesSkills(path.join(projeto, '.claude', 'skills'), 'skills do projeto');
-descricoesSkills(path.join(CLAUDE, 'plugins', 'cache'), 'plugins instalados');
+if (path.join(projeto, '.claude') !== CLAUDE) descricoesSkills(path.join(projeto, '.claude', 'skills'), 'project skills');
+descricoesSkills(path.join(CLAUDE, 'plugins', 'cache'), 'installed plugins');
 
 // MCP configurados
 let mcps = [];
@@ -84,27 +84,27 @@ function contextoInicialReal() {
 const real = contextoInicialReal();
 const somado = itens.reduce((s, i) => s + i.tokens, 0);
 
-console.log(`\n=== AUDITORIA DO CONTEXTO FIXO — ${projeto} ===\n`);
+console.log(`\n=== FIXED CONTEXT AUDIT — ${projeto} ===\n`);
 let grupo = '';
 for (const i of itens) {
   if (i.grupo !== grupo) { grupo = i.grupo; console.log(`${grupo}:`); }
   console.log(`  ${fmt(i.tokens).padStart(6)}  ${i.nome}`);
 }
-console.log(`MCP configurados aqui: ${mcps.length ? mcps.join(', ') : 'nenhum'} (+ conectores do claude.ai, se ligados)`);
-console.log(`\nSomado acima: ~${fmt(somado)} tokens`);
+console.log(`MCP servers configured here: ${mcps.length ? mcps.join(', ') : 'none'} (+ claude.ai connectors, if enabled)`);
+console.log(`\nTotal above: ~${fmt(somado)} tokens`);
 if (real) {
-  console.log(`Contexto real na 1ª chamada (mediana das últimas sessões): ${fmt(real)} tokens`);
-  console.log(`Resto (prompt do sistema + definições de ferramentas/MCP/conectores): ~${fmt(Math.max(0, real - somado))} tokens`);
+  console.log(`Actual context on the first call (recent-session median): ${fmt(real)} tokens`);
+  console.log(`Remainder (system prompt + tool/MCP/connector definitions): ~${fmt(Math.max(0, real - somado))} tokens`);
 }
 
-console.log('\nSugestões:');
+console.log('\nSuggestions:');
 const sug = [];
 const claudeMd = itens.filter((i) => i.grupo === 'CLAUDE.md');
-for (const c of claudeMd) if (c.tokens > 2500) sug.push(`${c.nome} tem ${fmt(c.tokens)} tokens. Deixe só regras que valem sempre; detalhes viram notas no vault (rubi_salvar_nota) e são buscados quando precisar.`);
-if (memoria && memoria.split('\n').length > 150) sug.push('MEMORY.md passa de 150 linhas: só as primeiras 200 entram. Junte ou apague entradas velhas.');
+for (const c of claudeMd) if (c.tokens > 2500) sug.push(`${c.nome} has ${fmt(c.tokens)} tokens. Keep only rules that always apply; move details into Rubi nodes and retrieve them when needed.`);
+if (memoria && memoria.split('\n').length > 150) sug.push('MEMORY.md exceeds 150 lines; only the first 200 are loaded. Merge or remove old entries.');
 const skills = itens.filter((i) => i.grupo === 'Skills').reduce((s, i) => s + i.tokens, 0);
-if (skills > 3000) sug.push(`Descrições de skills somam ~${fmt(skills)}. Desinstale plugins/skills que não usa (/plugin) ou encurte as descrições.`);
-if (real && real - somado > 25000) sug.push(`Há ~${fmt(real - somado)} tokens em ferramentas e prompt do sistema. Conectores do claude.ai e servidores MCP que este projeto não usa podem ser desligados aqui (/mcp).`);
-if (!sug.length) sug.push('Nada gritante. O contexto fixo está enxuto.');
+if (skills > 3000) sug.push(`Skill descriptions total ~${fmt(skills)} tokens. Uninstall unused plugins/skills (/plugin) or shorten their descriptions.`);
+if (real && real - somado > 25000) sug.push(`Tools and the system prompt use ~${fmt(real - somado)} tokens. Disable claude.ai connectors and MCP servers this project does not use (/mcp).`);
+if (!sug.length) sug.push('Nothing stands out. The fixed context is lean.');
 for (const s of sug) console.log(`  - ${s}`);
-console.log(`\nCada 10k cortados aqui deixam de ser relidos em TODAS as mensagens de TODAS as sessões.`);
+console.log(`\nEvery 10k tokens removed here stops being reread in every message of every session.`);

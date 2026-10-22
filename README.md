@@ -197,13 +197,13 @@ substitui: "decisao-sessao-em-cookie"
 commit: "a1b2c3d"
 ---
 
-# Usar JWT em vez de sessão
+# Use JWT instead of sessions
 
 Stateless, so it runs on edge runtimes without a session store.
 
-## Ligações
-- sobre [[conceito-autenticacao]]
-- substitui [[decisao-sessao-em-cookie]]
+## Links
+- about [[conceito-autenticacao]]
+- replaces [[decisao-sessao-em-cookie]]
 ```
 
 Personal preferences that apply to every project live in a separate personal vault (`~/rubi-vault/_pessoal`). Search covers both.
@@ -260,10 +260,10 @@ sequenceDiagram
 [conceito] Checkout — conhecimento/conceito-checkout.md
   Fluxo de finalizar compra.
 
-[arquivo] src/desconto/cupom.ts — módulo src/desconto, usado por 2 · ligado a "Cupom aplicado duas vezes"
+[file] src/discount/coupon.ts — module src/discount, used by 2 · linked to "Coupon applied twice"
   aplicarCupom
 
-(3 itens, ~180 tokens. Abra um item com rubi_ler; zoom no módulo com rubi_mapa.)
+(3 items, ~180 tokens. Open an item with rubi_ler; zoom into a module with rubi_mapa.)
 ```
 
 Every item says **why** it is there ("ligado a…" = linked to, "citado" = named in the question), so Claude can trust or discard it quickly.
@@ -377,13 +377,13 @@ That is a **projection**, not a measurement. Measuring it properly needs long, m
 /plugin install rubi@rubi
 ```
 
-Then `node scripts/instalar.mjs` from a clone of this repo turns on early compaction (150k) and creates your personal vault. Details in [Install](#7-install).
+Then `npm run install-rubi` from a clone of this repo turns on early compaction (150k) and creates your personal vault. Details in [Install](#7-install).
 
 **Monday, first session.** You open Claude Code in your project. Rubi indexes the code in under a second for most projects and injects the map:
 
 ```text
-[rubi] Mapa do projeto (nível 0)
-## Módulos
+[rubi] Project map (level 0)
+## Modules
 - src/checkout (8) — centrais: Checkout.tsx, useCart.ts, api.ts
 - src/desconto (4) — centrais: cupom.ts, regras.ts
 ## Arquivos centrais
@@ -403,7 +403,7 @@ rubi_registrar → criado: conhecimento/bug-cupom-aplicado-duas-vezes.md
 
 **Wednesday, a long refactor.** The context grows. At 120k the meter tells Claude to register the decisions it made and save a handoff. At 150k Claude Code compacts on its own. Rubi saves a record of the session and, right after compaction, injects the handoff back. You keep talking; Claude keeps going from ~60k instead of dragging 500k along.
 
-**Thursday, a decision changes.** *"Let's use JWT instead of session cookies."* Claude registers the new decision with `substitui: "Sessão em cookie"`. The old one is marked superseded, never deleted, and no future session will follow it.
+**Thursday, a decision changes.** *"Let's use JWT instead of session cookies."* Claude registers the new decision with `substitui: "Cookie sessions"`. The old one is marked superseded, never deleted, and no future session will follow it.
 
 **Friday, look at it.** Open `.rubi/` in Obsidian and switch to graph view: modules, decisions, bugs and concepts, connected. Run `/rubi:raio-x` to see where the week's tokens went, and `/rubi:organizar` if your `CLAUDE.md` has grown too large. It moves the details into the graph and leaves only the rules that matter in every message.
 
@@ -444,10 +444,10 @@ Restart Claude Code (exit and run `claude` again) so the hooks load.
 ```bash
 git clone https://github.com/YURIBEDRAN/rubi
 cd rubi
-node scripts/instalar.mjs
+npm run install-rubi
 ```
 
-It asks two things: where to keep your **personal** notes (default `~/rubi-vault`) and when to compact (default `150000` tokens). It writes `CLAUDE_CODE_AUTO_COMPACT_WINDOW` into `~/.claude/settings.json`, keeping a backup in `settings.json.bak-rubi`. Undo any time with `node scripts/instalar.mjs --desfazer`.
+It asks two things: where to keep your **personal** notes (default `~/rubi-vault`) and when to compact (default `150000` tokens). It writes `CLAUDE_CODE_AUTO_COMPACT_WINDOW` into `~/.claude/settings.json`, keeping a backup in `settings.json.bak-rubi`. Undo any time with `npm run install-rubi -- --desfazer`.
 
 **3. Check that it works.** Open Claude Code inside a project that uses git.
 
@@ -492,7 +492,7 @@ Rubi's core is a standard **MCP server**, so it works in any coding agent that s
 ```bash
 git clone https://github.com/YURIBEDRAN/rubi
 cd your-project
-node /path/to/rubi/scripts/conectar.mjs codex     # or: gemini, cursor, vscode, windsurf, cline, opencode, continue, goose, zed
+npm --prefix /path/to/rubi run connect -- codex   # or: gemini, cursor, vscode, windsurf, cline, opencode, continue, goose, zed
 ```
 
 For each agent it registers the MCP server in that agent's config (keeping a `.bak-rubi` backup), writes the instructions into the file the agent reads on its own (`AGENTS.md`, `GEMINI.md`, `.cursor/rules/rubi.mdc`...) and, where the agent supports hooks that feed context to the model, turns on the **map at session start** and the **automatic recall** on every request. Formats that are risky to edit automatically (YAML, JSON with comments) are printed for you to paste. Use `--so-mostrar` to only print, never write. `--listar` shows all agents.
@@ -548,11 +548,11 @@ Support for the website and the mobile app is in development. The pieces already
 <details>
 <summary><b>Skills, agent and commands</b></summary>
 
-- `/rubi:memoria <topic>`: search the project memory and learn what is worth storing.
+- `/rubi:memory <topic>`: search the project memory and learn what is worth storing.
 - `/rubi:handoff`: register facts and save a handoff now.
-- `/rubi:organizar`: slim down a large `CLAUDE.md` into the graph and the map.
-- `/rubi:raio-x`: where your tokens go, and what to change first.
-- Agent `rubi-pesquisador`: researches the codebase in its own context window and returns only the conclusion.
+- `/rubi:organize`: slim down a large `CLAUDE.md` into the graph and the map.
+- `/rubi:x-ray`: where your tokens go, and what to change first.
+- Agent `rubi-researcher`: researches the codebase in its own context window and returns only the conclusion.
 - CLI: `node scripts/indexar.mjs`, `node scripts/raio-x.mjs --dias 30`, `node scripts/auditar.mjs <dir>`.
 
 </details>
@@ -576,7 +576,7 @@ Support for the website and the mobile app is in development. The pieces already
 ```bash
 npm test                     # 14 tests: code map, graph, search, map, hooks, MCP stdio + HTTP
 node bench/rodar.mjs         # A/B benchmark
-npm run empacotar            # dist/rubi.mcpb + dist/rubi.zip
+npm run package              # dist/rubi.mcpb + dist/rubi.zip
 python docs/assets/build_svgs.py
 ```
 

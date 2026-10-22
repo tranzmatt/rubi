@@ -100,38 +100,38 @@ const fmt = (n) => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).
 const pct = (a, b) => b ? (100 * a / b).toFixed(0) + '%' : '-';
 const custoTotal = total.input + total.write5m * PESO.write5m + total.write1h * PESO.write1h + total.read * PESO.read + total.output * PESO.output;
 
-console.log(`\n=== RAIO-X (${dias} dias, ${sessoes.length} sessões, ${raiz}) ===\n`);
-console.log('Custo total em tokens-equivalentes de input:', fmt(custoTotal));
-console.log('Composição do custo:');
-for (const [k, v] of Object.entries(total)) console.log(`  ${k.padEnd(8)} ${fmt(v).padStart(7)} tokens  -> ${pct(v * PESO[k], custoTotal)} do custo`);
+console.log(`\n=== TOKEN X-RAY (${dias} days, ${sessoes.length} sessions, ${raiz}) ===\n`);
+console.log('Total cost in input-token equivalents:', fmt(custoTotal));
+console.log('Cost breakdown:');
+for (const [k, v] of Object.entries(total)) console.log(`  ${k.padEnd(8)} ${fmt(v).padStart(7)} tokens  -> ${pct(v * PESO[k], custoTotal)} of cost`);
 const cacheTotal = total.read + total.write5m + total.write1h + total.input;
-console.log(`Taxa de acerto do cache: ${pct(total.read, cacheTotal)}`);
-console.log(`Cache expirado/reescrito no meio da sessão: ${expiracoes}x, ${fmt(tokensExpiracao)} tokens reescritos`);
+console.log(`Cache hit rate: ${pct(total.read, cacheTotal)}`);
+console.log(`Cache expired/rewritten mid-session: ${expiracoes}x, ${fmt(tokensExpiracao)} tokens rewritten`);
 
 const ctx0 = sessoes.map((s) => s.ctx0).sort((a, b) => a - b);
-console.log(`\nContexto fixo na 1ª chamada (system + CLAUDE.md + memória + ferramentas): mediana ${fmt(ctx0[ctx0.length >> 1])}, máx ${fmt(ctx0.at(-1))}`);
+console.log(`\nFixed context on first call (system + CLAUDE.md + memory + tools): median ${fmt(ctx0[ctx0.length >> 1])}, max ${fmt(ctx0.at(-1))}`);
 
 const picos = sessoes.map((s) => s.pico);
 const faixa = (a, b) => picos.filter((p) => p >= a && p < b).length;
-console.log(`Pico de contexto por sessão: <50k ${faixa(0, 5e4)} | 50-150k ${faixa(5e4, 15e4)} | 150-400k ${faixa(15e4, 4e5)} | >400k ${faixa(4e5, 1e12)}`);
+console.log(`Peak context per session: <50k ${faixa(0, 5e4)} | 50-150k ${faixa(5e4, 15e4)} | 150-400k ${faixa(15e4, 4e5)} | >400k ${faixa(4e5, 1e12)}`);
 const custoGrandes = sessoes.filter((s) => s.pico >= 15e4).reduce((a, s) => a + s.custo, 0);
-console.log(`Sessões que passaram de 150k respondem por ${pct(custoGrandes, custoTotal)} do custo`);
+console.log(`Sessions exceeding 150k account for ${pct(custoGrandes, custoTotal)} of cost`);
 
-console.log('\nTop 10 sessões mais caras:');
+console.log('\nTop 10 most expensive sessions:');
 for (const s of [...sessoes].sort((a, b) => b.custo - a.custo).slice(0, 10))
-  console.log(`  ${fmt(s.custo).padStart(7)}  pico ${fmt(s.pico).padStart(5)}  ${String(s.chamadas).padStart(4)} chamadas  ${s.inicio?.slice(0, 10)}  ${s.projeto}`);
+  console.log(`  ${fmt(s.custo).padStart(7)}  peak ${fmt(s.pico).padStart(5)}  ${String(s.chamadas).padStart(4)} calls  ${s.inicio?.slice(0, 10)}  ${s.projeto}`);
 
-console.log('\nFerramentas (tokens que entraram | custo de carregar isso nas chamadas seguintes):');
+console.log('\nTools (tokens added | cost of carrying them through later calls):');
 for (const [n, f] of Object.entries(porFerramenta).sort((a, b) => b[1].carrego - a[1].carrego).slice(0, 12))
-  console.log(`  ${n.padEnd(28)} ${String(f.n).padStart(5)}x  ${fmt(f.tokens).padStart(6)}  carrego ${fmt(f.carrego).padStart(6)} (${pct(f.carrego, custoTotal)})`);
+  console.log(`  ${n.padEnd(28)} ${String(f.n).padStart(5)}x  ${fmt(f.tokens).padStart(6)}  carry ${fmt(f.carrego).padStart(6)} (${pct(f.carrego, custoTotal)})`);
 
-console.log('\nTop 10 resultados de ferramenta mais caros de carregar:');
+console.log('\nTop 10 most expensive tool results to carry:');
 for (const r of maioresResultados.sort((a, b) => b.carrego - a.carrego).slice(0, 10))
   console.log(`  ${fmt(r.carrego).padStart(6)}  ${fmt(r.tokens).padStart(5)} tok  ${r.nome}  ${r.desc}`);
 
 // Simulação: se a cada vez que o contexto passa de LIMITE a sessão fosse trocada por uma nova
 // começando com o contexto fixo + um handoff de ~8k, quanto custaria só a leitura de cache?
-console.log('\nSimulação de handoff automático (só leitura de cache, crescimento igual ao real):');
+console.log('\nAutomatic handoff simulation (cache reads only, using actual growth):');
 const leituraReal = sessoes.reduce((a, s) => a + s.read, 0);
 for (const LIMITE of [100e3, 150e3, 250e3]) {
   let leitura = 0, trocas = 0, reescrita = 0;
@@ -145,5 +145,5 @@ for (const LIMITE of [100e3, 150e3, 250e3]) {
     }
   }
   const economia = (leituraReal - leitura) * PESO.read - reescrita;
-  console.log(`  limite ${fmt(LIMITE)}: ${trocas} trocas de janela, economia ~${pct(economia, custoTotal)} do custo total`);
+  console.log(`  limit ${fmt(LIMITE)}: ${trocas} context switches, saves ~${pct(economia, custoTotal)} of total cost`);
 }

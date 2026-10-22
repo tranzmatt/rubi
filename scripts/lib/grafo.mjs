@@ -10,12 +10,12 @@ import { execFileSync } from 'node:child_process';
 import { garantir, comFrontmatter, separarFrontmatter, listarMd, idDe } from './memoria.mjs';
 
 export const TIPOS = ['decisao', 'conceito', 'bug', 'armadilha', 'preferencia', 'como-fazer', 'tarefa', 'nota'];
-export const ROTULO = { decisao: 'decisão', conceito: 'conceito', bug: 'bug', armadilha: 'armadilha', preferencia: 'preferência', 'como-fazer': 'como fazer', tarefa: 'tarefa', nota: 'nota' };
+export const ROTULO = { decisao: 'decision', conceito: 'concept', bug: 'bug', armadilha: 'gotcha', preferencia: 'preference', 'como-fazer': 'how-to', tarefa: 'task', nota: 'note' };
 
 export function lerNos(m) {
   return listarMd(path.join(m, 'conhecimento')).map((p) => {
     const { campos, corpo } = separarFrontmatter(fs.readFileSync(p, 'utf8'));
-    const texto = corpo.replace(/^#\s.*\n+/, '').replace(/\n## Ligações[\s\S]*$/, '').trim();
+    const texto = corpo.replace(/^#\s.*\n+/, '').replace(/\n## (?:Ligações|Links)[\s\S]*$/, '').trim();
     return {
       id: campos.id || path.basename(p, '.md'), tipo: campos.tipo || 'nota', titulo: campos.titulo || path.basename(p, '.md'),
       status: campos.status || 'ativo', arquivos: campos.arquivos || [], liga: campos.liga || [],
@@ -29,11 +29,11 @@ export function lerNos(m) {
 function escreverNo(m, no) {
   const links = [
     ...no.liga.map((l) => `- ${l.rel.replace(/_/g, ' ')} ${l.alvo.startsWith('arquivo:') ? `\`${l.alvo.slice(8)}\`` : l.alvo.startsWith('modulo:') ? `[[modulos/${idDe(l.alvo.slice(7))}|${l.alvo.slice(7)}]]` : `[[${l.alvo}]]`}`),
-    ...no.arquivos.map((a) => `- arquivo \`${a}\``),
-    ...(no.substitui ? [`- substitui [[${no.substitui}]]`] : []),
-    ...(no.substituido_por ? [`- substituído por [[${no.substituido_por}]]`] : []),
+    ...no.arquivos.map((a) => `- file \`${a}\``),
+    ...(no.substitui ? [`- replaces [[${no.substitui}]]`] : []),
+    ...(no.substituido_por ? [`- replaced by [[${no.substituido_por}]]`] : []),
   ];
-  const corpo = `# ${no.titulo}\n\n${no.texto.trim()}\n${links.length ? `\n## Ligações\n\n${links.join('\n')}\n` : ''}`;
+  const corpo = `# ${no.titulo}\n\n${no.texto.trim()}\n${links.length ? `\n## Links\n\n${links.join('\n')}\n` : ''}`;
   fs.writeFileSync(path.join(m, 'conhecimento', `${no.id}.md`), comFrontmatter({
     id: no.id, tipo: no.tipo, titulo: no.titulo, status: no.status, arquivos: no.arquivos, liga: no.liga,
     substitui: no.substitui, substituido_por: no.substituido_por, criado: no.criado, atualizado: no.atualizado, commit: no.commit,
@@ -94,7 +94,7 @@ export function registrar(m, fatos, { raiz, modulos = [] } = {}) {
     if (/[/\\]/.test(a) || /\.[a-z0-9]{1,5}$/i.test(a)) return `arquivo:${normalizarArquivo(raiz, a)}`;
     // conceito novo: cria um nó mínimo pra ligação não ficar solta
     const id = `conceito-${idDe(a)}`;
-    const stub = { id, tipo: 'conceito', titulo: a, status: 'ativo', arquivos: [], liga: [], texto: '(criado a partir de uma ligação; complete quando souber mais)', criado: agora, atualizado: agora, commit };
+    const stub = { id, tipo: 'conceito', titulo: a, status: 'ativo', arquivos: [], liga: [], texto: '(created from a link; complete this node when you know more)', criado: agora, atualizado: agora, commit };
     porId.set(id, stub); escreverNo(m, stub);
     return id;
   };
@@ -114,13 +114,13 @@ export function registrar(m, fatos, { raiz, modulos = [] } = {}) {
       for (const l of liga) if (!no.liga.some((x) => x.rel === l.rel && x.alvo === l.alvo)) no.liga.push(l);
       no.atualizado = agora; no.commit = commit || no.commit;
       if (f.status) no.status = f.status;
-      acao = 'atualizado';
+      acao = 'updated';
     } else {
       let id = `${tipo}-${idDe(f.titulo)}`;
       for (let i = 2; porId.has(id); i++) id = `${tipo}-${idDe(f.titulo)}-${i}`;
       no = { id, tipo, titulo: String(f.titulo).trim(), status: f.status || 'ativo', arquivos, liga, texto: String(f.texto || '').trim(), criado: agora, atualizado: agora, commit };
       porId.set(id, no);
-      acao = 'criado';
+      acao = 'created';
     }
     if (f.substitui) {
       const velho = acharNo(f.substitui);
@@ -128,7 +128,7 @@ export function registrar(m, fatos, { raiz, modulos = [] } = {}) {
         velho.status = 'substituido'; velho.substituido_por = no.id; velho.atualizado = agora;
         no.substitui = velho.id;
         escreverNo(m, velho);
-        acao += `, substitui ${velho.id}`;
+        acao += `, replaces ${velho.id}`;
       }
     }
     escreverNo(m, no);

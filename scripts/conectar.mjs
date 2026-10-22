@@ -41,12 +41,12 @@ Memory lives in \`.rubi/\` as plain markdown (opens in Obsidian). Never store se
 // ---- agentes ----
 const AGENTES = {
   codex: {
-    nome: 'OpenAI Codex (CLI, IDE e app)',
+    nome: 'OpenAI Codex (CLI, IDE, and app)',
     config: () => path.join(process.env.CODEX_HOME || path.join(HOME, '.codex'), 'config.toml'),
     formato: 'toml',
     instrucoes: 'AGENTS.md',
     hooks: () => ({ arquivo: path.join(process.env.CODEX_HOME || path.join(HOME, '.codex'), 'hooks.json'), inicio: 'SessionStart', pedido: 'UserPromptSubmit' }),
-    nota: 'Funciona com modelos da OpenAI e com modelos locais (codex --oss, via Ollama ou LM Studio).',
+    nota: 'Works with OpenAI models and local models (codex --oss through Ollama or LM Studio).',
   },
   gemini: {
     nome: 'Gemini CLI',
@@ -62,7 +62,7 @@ const AGENTES = {
     instrucoes: '.cursor/rules/rubi.mdc',
   },
   vscode: {
-    nome: 'GitHub Copilot no VS Code',
+    nome: 'GitHub Copilot in VS Code',
     config: (proj) => proj && path.join(proj, '.vscode', 'mcp.json'),
     porProjeto: true,
     formato: 'json', chave: 'servers', extra: { type: 'stdio', env: { RUBI_PROJECT_DIR: '${workspaceFolder}' } },
@@ -79,14 +79,14 @@ const AGENTES = {
     config: () => process.env.CLINE_MCP_SETTINGS_PATH || path.join(HOME, '.cline', 'data', 'settings', 'cline_mcp_settings.json'),
     formato: 'json', chave: 'mcpServers', extra: { disabled: false, autoApprove: [] },
     instrucoes: 'AGENTS.md',
-    nota: 'Aceita modelos locais (Ollama, LM Studio) com suporte a ferramentas.',
+    nota: 'Supports local models (Ollama and LM Studio) with tool calling.',
   },
   opencode: {
     nome: 'OpenCode',
     config: () => path.join(XDG, 'opencode', 'opencode.json'),
     formato: 'json', chave: 'mcp', opencode: true,
     instrucoes: 'AGENTS.md',
-    nota: 'Aceita modelos locais por provedor compatível com OpenAI.',
+    nota: 'Supports local models through an OpenAI-compatible provider.',
   },
   continue: {
     nome: 'Continue',
@@ -94,21 +94,21 @@ const AGENTES = {
     porProjeto: true,
     formato: 'continue-yaml',
     instrucoes: '.continue/rules/rubi.md',
-    nota: 'MCP só funciona no modo agent. Aceita Ollama e LM Studio.',
+    nota: 'MCP works only in agent mode. Supports Ollama and LM Studio.',
   },
   goose: {
     nome: 'Goose',
     config: () => process.platform === 'win32' ? path.join(APPDATA, 'Block', 'goose', 'config', 'config.yaml') : path.join(XDG, 'goose', 'config.yaml'),
     formato: 'goose-yaml',
     instrucoes: 'AGENTS.md',
-    nota: 'Aceita Ollama.',
+    nota: 'Supports Ollama.',
   },
   zed: {
     nome: 'Zed',
     config: () => process.platform === 'win32' ? path.join(APPDATA, 'Zed', 'settings.json') : path.join(XDG, 'zed', 'settings.json'),
     formato: 'zed',
     instrucoes: 'AGENTS.md',
-    nota: 'O Zed lê só o primeiro arquivo de regras que achar (.rules, .cursorrules, ..., AGENTS.md).',
+    nota: 'Zed reads only the first rules file it finds (.rules, .cursorrules, ..., AGENTS.md).',
   },
 };
 
@@ -147,37 +147,37 @@ const mostrar = (titulo, conteudo) => relatorio.push(`\n${titulo}\n${'-'.repeat(
 
 function configurarMcp(ag, proj) {
   const arq = ag.config(proj);
-  if (!arq) return mostrar('Configuração MCP', 'Esse agente é configurado por projeto: rode de dentro do projeto ou passe --projeto <pasta>.');
+  if (!arq) return mostrar('MCP configuration', 'This agent is configured per project. Run the command inside the project or pass --projeto <path>.');
   if (ag.formato === 'json') {
     const trecho = JSON.stringify({ [ag.chave]: { rubi: servidorJson(ag) } }, null, 2);
-    if (SO_MOSTRAR) return mostrar(`Cole em ${arq}`, trecho);
+    if (SO_MOSTRAR) return mostrar(`Paste into ${arq}`, trecho);
     try {
       const obj = lerJson(arq);
       obj[ag.chave] = { ...(obj[ag.chave] || {}), rubi: servidorJson(ag) };
       gravarJson(arq, obj);
-      relatorio.push(`✓ servidor MCP registrado em ${arq}`);
+      relatorio.push(`✓ MCP server registered in ${arq}`);
     } catch {
-      mostrar(`Não consegui editar ${arq} com segurança (tem comentários?). Cole isto dentro dele`, trecho);
+      mostrar(`Could not edit ${arq} safely (does it contain comments?). Paste this inside it`, trecho);
     }
     return;
   }
   if (ag.formato === 'toml') {
-    if (SO_MOSTRAR) return mostrar(`Cole no fim de ${arq}`, trechoToml);
+    if (SO_MOSTRAR) return mostrar(`Paste at the end of ${arq}`, trechoToml);
     const atual = fs.existsSync(arq) ? fs.readFileSync(arq, 'utf8') : '';
-    if (/^\[mcp_servers\.rubi\]/m.test(atual)) return relatorio.push(`✓ servidor MCP já estava em ${arq}`);
+    if (/^\[mcp_servers\.rubi\]/m.test(atual)) return relatorio.push(`✓ MCP server was already registered in ${arq}`);
     fs.mkdirSync(path.dirname(arq), { recursive: true });
     backup(arq);
     fs.writeFileSync(arq, `${atual.replace(/\s*$/, '')}\n\n${trechoToml}`);
-    return relatorio.push(`✓ servidor MCP registrado em ${arq}`);
+    return relatorio.push(`✓ MCP server registered in ${arq}`);
   }
   if (ag.formato === 'continue-yaml') {
-    if (SO_MOSTRAR || fs.existsSync(arq)) return mostrar(`Crie ${arq} com`, trechoContinue);
+    if (SO_MOSTRAR || fs.existsSync(arq)) return mostrar(`Create ${arq} with`, trechoContinue);
     fs.mkdirSync(path.dirname(arq), { recursive: true });
     fs.writeFileSync(arq, trechoContinue);
-    return relatorio.push(`✓ servidor MCP criado em ${arq}`);
+    return relatorio.push(`✓ MCP server created in ${arq}`);
   }
-  if (ag.formato === 'goose-yaml') return mostrar(`Cole em ${arq} (dentro de "extensions:", se já existir)`, trechoGoose);
-  if (ag.formato === 'zed') return mostrar(`Cole dentro do objeto principal de ${arq}`, trechoZed);
+  if (ag.formato === 'goose-yaml') return mostrar(`Paste into ${arq} (inside "extensions:" if it already exists)`, trechoGoose);
+  if (ag.formato === 'zed') return mostrar(`Paste inside the top-level object in ${arq}`, trechoZed);
 }
 
 function configurarHooks(ag) {
@@ -187,7 +187,7 @@ function configurarHooks(ag) {
     [h.inicio]: [{ hooks: [{ type: 'command', command: comandoHook('inicio'), timeout: 30 }] }],
     [h.pedido]: [{ hooks: [{ type: 'command', command: comandoHook('lembrar'), timeout: 10 }] }],
   };
-  if (SO_MOSTRAR) return mostrar(`Hooks (cole em ${h.arquivo}, na chave "hooks")`, JSON.stringify({ hooks: bloco }, null, 2));
+  if (SO_MOSTRAR) return mostrar(`Hooks (paste into the "hooks" key in ${h.arquivo})`, JSON.stringify({ hooks: bloco }, null, 2));
   try {
     const obj = lerJson(h.arquivo);
     obj.hooks = obj.hooks || {};
@@ -196,35 +196,35 @@ function configurarHooks(ag) {
       obj.hooks[evento] = [...existentes, ...lista];
     }
     gravarJson(h.arquivo, obj);
-    relatorio.push(`✓ hooks (mapa no início, lembrança a cada pedido) em ${h.arquivo}`);
+    relatorio.push(`✓ hooks (map at startup, recall on every request) in ${h.arquivo}`);
   } catch {
-    mostrar(`Não consegui editar ${h.arquivo}. Hooks pra colar`, JSON.stringify({ hooks: bloco }, null, 2));
+    mostrar(`Could not edit ${h.arquivo}. Paste these hooks`, JSON.stringify({ hooks: bloco }, null, 2));
   }
 }
 
 const INI = '<!-- rubi:inicio -->', FIM = '<!-- rubi:fim -->';
 function escreverInstrucoes(ag, proj) {
   if (flag('--sem-instrucoes')) return;
-  if (!proj) return mostrar('Instruções', `Rode de dentro de um projeto (ou use --projeto) pra eu escrever as instruções em ${ag.instrucoes}.`);
+  if (!proj) return mostrar('Instructions', `Run inside a project (or use --projeto) so Rubi can write instructions to ${ag.instrucoes}.`);
   const arq = path.join(proj, ag.instrucoes);
   const corpo = arq.endsWith('.mdc') ? `---\ndescription: Rubi project memory (MCP)\nalwaysApply: true\n---\n\n${INSTRUCOES}\n` : `${INI}\n${INSTRUCOES}\n${FIM}\n`;
-  if (SO_MOSTRAR) return mostrar(`Instruções pra ${arq}`, corpo);
+  if (SO_MOSTRAR) return mostrar(`Instructions for ${arq}`, corpo);
   fs.mkdirSync(path.dirname(arq), { recursive: true });
-  if (arq.endsWith('.mdc') || !fs.existsSync(arq)) { fs.writeFileSync(arq, corpo); return relatorio.push(`✓ instruções em ${arq}`); }
+  if (arq.endsWith('.mdc') || !fs.existsSync(arq)) { fs.writeFileSync(arq, corpo); return relatorio.push(`✓ instructions written to ${arq}`); }
   const atual = fs.readFileSync(arq, 'utf8');
   const i = atual.indexOf(INI), j = atual.indexOf(FIM);
   const novo = i >= 0 && j > i ? atual.slice(0, i) + corpo.trim() + atual.slice(j + FIM.length) : `${atual.replace(/\s*$/, '')}\n\n${corpo}`;
   backup(arq);
   fs.writeFileSync(arq, novo);
-  relatorio.push(`✓ instruções em ${arq}`);
+  relatorio.push(`✓ instructions written to ${arq}`);
 }
 
 // ---- principal ----
 const nome = args.find((a) => !a.startsWith('--') && a !== valor('--projeto'));
 if (flag('--listar') || !nome || !AGENTES[nome]) {
-  console.log('Uso: node scripts/conectar.mjs <agente> [--projeto <pasta>] [--so-mostrar] [--sem-instrucoes] [--sem-hooks]\n\nAgentes:');
-  for (const [k, a] of Object.entries(AGENTES)) console.log(`  ${k.padEnd(9)} ${a.nome}${a.hooks ? '  (com hooks)' : ''}`);
-  console.log('\nClaude Code: use o plugin (/plugin install rubi@rubi). Claude Desktop: rubi.mcpb.');
+  console.log('Usage: node scripts/conectar.mjs <agent> [--projeto <path>] [--so-mostrar] [--sem-instrucoes] [--sem-hooks]\n\nAgents:');
+  for (const [k, a] of Object.entries(AGENTES)) console.log(`  ${k.padEnd(9)} ${a.nome}${a.hooks ? '  (with hooks)' : ''}`);
+  console.log('\nClaude Code: use the plugin (/plugin install rubi@rubi). Claude Desktop: rubi.mcpb.');
   process.exit(nome && !AGENTES[nome] ? 1 : 0);
 }
 
@@ -236,6 +236,6 @@ escreverInstrucoes(ag, proj);
 
 console.log(`Rubi → ${ag.nome}\n`);
 console.log(relatorio.join('\n'));
-if (ag.nota) console.log(`\nObs.: ${ag.nota}`);
-console.log(`\nReinicie o ${ag.nome} e peça: "use o rubi_mapa pra ver o mapa deste projeto".`);
-if (!SO_MOSTRAR) console.log('Backups dos arquivos alterados ficam ao lado deles, com final .bak-rubi.');
+if (ag.nota) console.log(`\nNote: ${ag.nota}`);
+console.log(`\nRestart ${ag.nome} and ask: "Use rubi_mapa to show this project's map."`);
+if (!SO_MOSTRAR) console.log('Backups of changed files are stored beside them with the .bak-rubi suffix.');

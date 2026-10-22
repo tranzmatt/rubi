@@ -1,52 +1,47 @@
 ---
 name: handoff
-description: Salva o "onde paramos" e o conhecimento durável da sessão antes da compactação ou de trocar de janela. Use quando o medidor de contexto avisar, quando o usuário pedir /handoff, ou ao fechar uma etapa grande.
+description: Save where the work stopped and the session's durable knowledge before compaction or moving to a new window. Use when the context meter warns, when the user requests /handoff, or when a major phase ends.
 ---
 
 # Handoff
 
-Três passos, nesta ordem, sem parar pra perguntar ao usuário quando foi o medidor que pediu.
+Complete these three steps in order. If the context meter requested the handoff, do not stop to ask the user.
 
-## 1. Registrar o que é durável (`rubi_registrar`)
+## 1. Store durable knowledge (`rubi_registrar`)
 
-Agora o contexto inteiro está na sua frente e já foi pago, então extrair custa pouco. Registre os fatos desta sessão que valem além da tarefa:
-- decisões, com o porquê;
-- bugs, com a causa e a correção;
-- armadilhas;
-- conceitos novos;
-- como fazer.
+The full context is already available. Store facts from this session that will matter beyond the current task: decisions and reasons, bugs and fixes, gotchas, new concepts, and how-to instructions.
 
-Ligue cada fato aos arquivos e aos outros nós. Use `substitui` quando uma decisão mudou.
+Link every fact to relevant files and other nodes. Use `substitui` when a decision changed.
 
-## 2. Resumos que faltam
+## 2. Fill missing summaries
 
-Se você entendeu um módulo que está sem resumo no mapa, escreva 2-5 linhas com `rubi_escrever_resumo`.
+If you now understand a module with no map summary, write 2-5 lines with `rubi_escrever_resumo`.
 
-## 3. O handoff (`rubi_salvar_handoff`)
+## 3. Save the handoff (`rubi_salvar_handoff`)
 
-É a nota que você gostaria de receber se acordasse sem memória no meio do trabalho. Ela volta sozinha depois da compactação.
+Write the note you would want if you resumed the work with no memory. Rubi restores it automatically after compaction.
 
 ```markdown
-# <tarefa em uma linha>
+# <task in one line>
 
-## Objetivo
-O que o usuário quer no fim, com as palavras dele quando importar.
+## Goal
+What the user wants at the end, using their words when that matters.
 
-## Estado atual
-O que está pronto e verificado. O que está pela metade (arquivo e ponto exato).
+## Current state
+What is complete and verified. What is partially done, including the exact file and location.
 
-## Arquivos-chave
-- `caminho/arquivo.ext`: papel nesta tarefa
+## Key files
+- `path/file.ext`: role in this task
 
-## Próximo passo
-1. A próxima ação concreta, com o comando ou o arquivo.
+## Next step
+1. The next concrete action, including the command or file.
 
-## Armadilhas desta tarefa
-- O que já deu errado aqui e como contornar.
+## Task-specific gotchas
+- What already went wrong and how to avoid it.
 ```
 
-- Passe também `arquivos` com os arquivos-chave: eles ligam o handoff ao grafo.
-- Seja concreto (caminhos, funções, comandos) e curto (até ~1.000 palavras). Não reconte a conversa.
-- Não repita no handoff o que você registrou como fato: o fato já volta pela busca.
-- Nada de segredos.
-- Se foi o usuário que pediu, diga onde salvou e que ele pode dar `/clear`, porque o handoff volta sozinho na janela nova.
+- Pass the key files in `arquivos` so the handoff connects to the graph.
+- Be concrete about paths, functions, and commands. Keep it under about 1,000 words and do not retell the conversation.
+- Do not repeat facts already saved as nodes; search will restore them.
+- Never store secrets.
+- If the user requested the handoff, say where it was saved and mention that they can run `/clear`; Rubi restores the handoff in the new window.

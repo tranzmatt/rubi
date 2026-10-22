@@ -1,5 +1,5 @@
 {
-  "description": "rubi: mapa no início, medidor de contexto, handoff em volta da compactação, colheita de conhecimento e guarda de leitura",
+  "description": "Rubi: startup map, context meter, compaction handoffs, knowledge harvesting, and large-file read guard",
   "hooks": {
     "SessionStart": [
       {

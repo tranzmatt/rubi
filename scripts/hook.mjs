@@ -19,7 +19,7 @@ const fmt = (n) => (n >= 1000 ? `${Math.round(n / 1000)}k` : String(n));
 const HORA = 36e5;
 // No plugin do Claude Code as ferramentas têm prefixo; nos outros agentes (Codex, Gemini...) o nome é o simples.
 const F = (n) => (process.env.CLAUDE_PLUGIN_ROOT ? `mcp__plugin_rubi_rubi__${n}` : n);
-const GUIA = `Antes de explorar o código, consulte a memória: ${F('rubi_contexto')} (mande termos relacionados). Aprendeu algo durável (como algo funciona, decisão e porquê, bug, armadilha): ${F('rubi_registrar')}. Pergunta ampla sobre o código: agente rubi-pesquisador.`;
+const GUIA = `Before exploring the code, search memory with ${F('rubi_contexto')} and include related terms. Store durable discoveries (how something works, decisions and reasons, bugs, and gotchas) with ${F('rubi_registrar')}. For broad code questions, use the rubi-researcher agent.`;
 
 function responder(evento, extra) {
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: evento, ...extra } }));
@@ -50,16 +50,16 @@ function inicio(e) {
   if (e.source === 'compact') {
     // A compactação nativa acabou de resumir a conversa. Devolvemos o que o resumo genérico perde.
     if (h && (h.sessao === e.session_id || Date.now() - h.mtime < 6 * HORA)) {
-      partes.push(`[rubi] A conversa foi compactada. Este é o handoff que você salvou antes (${h.caminho}). Continue a partir dele:\n\n${h.texto}`);
+      partes.push(`[rubi] The conversation was compacted. Continue from the handoff you saved earlier (${h.caminho}):\n\n${h.texto}`);
     }
     if (estado.ultimoRegistro) {
-      partes.push(`Registro automático do trecho compactado (pedidos, arquivos e comandos): ${estado.ultimoRegistro}. Abra com rubi_ler se faltar algum detalhe.`);
+      partes.push(`Automatic record of the compacted section (requests, files, and commands): ${estado.ultimoRegistro}. Open it with rubi_ler if you need more detail.`);
     }
     salvarEstado(e.session_id, { ...estado, avisado: false, proximoAviso: 0 });
   } else if (e.source === 'clear') {
-    if (h && Date.now() - h.mtime < 48 * HORA) partes.push(`[rubi] Nova janela. Último handoff (${h.caminho}):\n\n${h.texto}`);
+    if (h && Date.now() - h.mtime < 48 * HORA) partes.push(`[rubi] New context window. Latest handoff (${h.caminho}):\n\n${h.texto}`);
   }
-  if (mapa && e.source !== 'compact') partes.push(`[rubi] Mapa do projeto (nível 0; zoom com rubi_mapa):\n\n${mapa.trim()}`);
+  if (mapa && e.source !== 'compact') partes.push(`[rubi] Project map (level 0; zoom with rubi_mapa):\n\n${mapa.trim()}`);
   if (partes.length || raiz) partes.push(`[rubi] ${GUIA}`);
   if (partes.length) responder('SessionStart', { additionalContext: partes.join('\n\n') });
 }
@@ -80,18 +80,18 @@ function medidor(e) {
   }
   if (ctx < limite || (estado.avisado && cfg.compactaSozinho)) return;
 
-  let msg = `[rubi] Contexto em ${fmt(ctx)} de ${fmt(cfg.janela)} tokens.`;
+  let msg = `[rubi] Context is at ${fmt(ctx)} of ${fmt(cfg.janela)} tokens.`;
   if (!estado.avisado) {
-    msg += ' Antes da compactação, sem parar pra perguntar ao usuário:'
-      + ' (1) rubi_registrar com os fatos duráveis desta sessão (decisões e o porquê, bugs e correções, armadilhas, conceitos), ligando aos arquivos;'
-      + ' (2) se entendeu um módulo que está sem resumo, rubi_escrever_resumo;'
-      + ' (3) rubi_salvar_handoff (skill "handoff"): objetivo, estado atual, arquivos-chave e próximo passo.'
-      + ' Depois siga o trabalho normalmente.';
+    msg += ' Before compaction, without stopping to ask the user:'
+      + ' (1) call rubi_registrar with durable facts from this session (decisions and reasons, bugs and fixes, gotchas, and concepts), linked to files;'
+      + ' (2) call rubi_escrever_resumo for any module you now understand that lacks a summary;'
+      + ' (3) call rubi_salvar_handoff with the goal, current state, key files, and next step.'
+      + ' Then continue the work normally.';
   }
   if (!cfg.compactaSozinho) {
-    msg += ' A compactação automática cedo não está ligada: depois do handoff, sugira ao usuário rodar /compact (ou /clear; o handoff volta sozinho na janela nova).';
+    msg += ' Early automatic compaction is disabled. After saving the handoff, suggest /compact (or /clear; Rubi restores the handoff in the new window).';
   } else {
-    msg += ' A conversa vai ser compactada automaticamente logo e o handoff volta pra você em seguida.';
+    msg += ' The conversation will be compacted automatically soon, and Rubi will restore the handoff afterward.';
   }
   salvarEstado(e.session_id, { ...estado, avisado: true, proximoAviso: ctx + cfg.janela * 0.5 });
   return msg;
@@ -114,7 +114,7 @@ function lembrar(e) {
     const m = memoriaDoProjeto(e.cwd);
     const codigo = lerIndice(m)?.codigo || { arquivos: {}, modulos: {} };
     const achado = buscarContexto({ m, mp: memoriaPessoal(), raiz, codigo, pergunta: prompt.slice(0, 2000), orcamento: cfg.lembrancaOrcamento || 700, limite: 6, soConhecimento: true });
-    if (achado) partes.push(`[rubi] Da memória do projeto, relevante pra este pedido. Use como ponto de partida: vá direto aos arquivos citados em vez de explorar o projeto, e só confira no código o que for alterar:\n\n${achado}`);
+    if (achado) partes.push(`[rubi] Relevant project memory for this request. Use it as a starting point: go directly to the cited files instead of exploring the whole project, and verify in code anything you plan to change:\n\n${achado}`);
   }
   const msg = medidor(e);
   if (msg) partes.push(msg);
@@ -158,7 +158,7 @@ function colher(e) {
   salvarEstado(e.session_id, { ...estado, exploradoSemRegistro: 0 });
   process.stdout.write(JSON.stringify({
     decision: 'block',
-    reason: `[rubi] Antes de encerrar: você explorou o código (${pendente} leituras/buscas) e nada foi guardado. Registre com ${F('rubi_registrar')} de 1 a 5 fatos duráveis que descobriu (como algo funciona, onde fica, armadilhas, decisões), ligados aos arquivos, pra próxima sessão não precisar reler. Seja breve. Se não houver nada que valha guardar, só encerre sem comentar.`,
+    reason: `[rubi] Before finishing: you explored the code (${pendente} reads/searches) without storing anything. Use ${F('rubi_registrar')} to save 1-5 durable facts you discovered (how something works, where it lives, gotchas, or decisions), linked to files, so the next session does not need to rediscover them. Keep it brief. If nothing is worth storing, finish without comment.`,
   }));
 }
 
@@ -204,9 +204,9 @@ function guarda(e) {
   responder('PreToolUse', {
     permissionDecision: 'deny',
     permissionDecisionReason:
-      `[rubi] ${path.basename(alvo)} tem ${t.linhas || '?'} linhas (~${fmt(tokens)} tokens) e ficaria no contexto até o fim da sessão, ` +
-      'sendo relido a cada mensagem. Use Grep pra achar o trecho certo, ou Read com offset/limit. ' +
-      'Se precisar mesmo do arquivo inteiro, repita exatamente a mesma chamada que ela passa.',
+      `[rubi] ${path.basename(alvo)} has ${t.linhas || '?'} lines (~${fmt(tokens)} tokens) and would remain in context for the rest of the session, ` +
+      'reloaded with every message. Use Grep to find the relevant section or Read with offset/limit. ' +
+      'If you really need the whole file, repeat the exact same call and Rubi will allow it.',
   });
 }
 

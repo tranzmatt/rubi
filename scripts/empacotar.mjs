@@ -27,4 +27,4 @@ const pastaSkill = path.join(RAIZ, 'app', 'claude-ai');
 // No Windows usa o tar do sistema (o do Git Bash não gera zip).
 const tarWin = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
 execSync(process.platform === 'win32' ? `"${tarWin}" -a -c -f "${zip}" rubi` : `zip -r "${zip}" rubi`, { cwd: pastaSkill, stdio: 'inherit' });
-console.log(`\nPronto:\n  ${path.join(DIST, 'rubi.mcpb')}\n  ${zip}`);
+console.log(`\nDone:\n  ${path.join(DIST, 'rubi.mcpb')}\n  ${zip}`);

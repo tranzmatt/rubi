@@ -47,19 +47,19 @@ function transcript(nome, ctx) {
 }
 
 // ---------------------------------------------------------------- código
-test('mapa do código resolve imports (relativo, alias, python) e acha o arquivo central', async () => {
+test('code map resolves relative, alias, and Python imports and finds the central file', async () => {
   const { mapearCodigo } = await lib('codigo.mjs');
   const c = mapearCodigo(PROJ);
   assert.deepEqual(c.arquivos['src/checkout/Checkout.tsx'].imports.sort(), ['src/desconto/cupom.ts', 'src/lib/api.ts']);
-  assert.deepEqual(c.arquivos['worker/fila.py'].imports.sort(), ['worker/__init__.py', 'worker/cobranca.py'], 'pacote + submódulo');
+  assert.deepEqual(c.arquivos['worker/fila.py'].imports.sort(), ['worker/__init__.py', 'worker/cobranca.py'], 'package and submodule');
   assert.ok(c.arquivos['src/desconto/cupom.ts'].simbolos.includes('aplicarCupom'));
   const top = Object.entries(c.arquivos).sort((a, b) => b[1].rank - a[1].rank)[0][0];
-  assert.equal(top, 'src/lib/api.ts', 'quem é mais importado é o mais central');
+  assert.equal(top, 'src/lib/api.ts', 'the most imported file is the most central');
   assert.ok(c.modulos['src/desconto'] && c.modulos.worker);
 });
 
 // ---------------------------------------------------------------- grafo
-test('registrar cria nós, junta duplicados, liga e substitui sem apagar', async () => {
+test('registration creates nodes, merges duplicates, links, and supersedes without deleting', async () => {
   const { registrar, lerNos } = await lib('grafo.mjs');
   registrar(MEM, [
     { tipo: 'armadilha', titulo: 'Cupom aplicado duas vezes', texto: 'O desconto rodava antes do total ser recalculado.', arquivos: ['src/desconto/cupom.ts'], liga: [{ rel: 'sobre', alvo: 'Checkout' }] },
@@ -69,44 +69,44 @@ test('registrar cria nós, junta duplicados, liga e substitui sem apagar', async
   registrar(MEM, [{ tipo: 'decisao', titulo: 'Usar JWT em vez de sessão', texto: 'Stateless, roda em edge.', arquivos: ['src/auth/login.ts'], substitui: 'Sessão em cookie' }], { raiz: PROJ });
   const nos = lerNos(MEM);
   const cupom = nos.filter((n) => n.tipo === 'armadilha');
-  assert.equal(cupom.length, 1, 'título parecido do mesmo tipo vira o mesmo nó');
+  assert.equal(cupom.length, 1, 'a similar title with the same type becomes the same node');
   assert.match(cupom[0].texto, /carrinho/);
-  assert.ok(nos.some((n) => n.id === 'conceito-checkout'), 'ligação pra algo novo cria o conceito');
+  assert.ok(nos.some((n) => n.id === 'conceito-checkout'), 'a link to something new creates a concept');
   const velha = nos.find((n) => n.titulo === 'Sessão em cookie');
   assert.equal(velha.status, 'substituido');
   assert.equal(velha.substituido_por, 'decisao-usar-jwt-em-vez-de-sessao');
-  assert.deepEqual(nos.find((n) => n.tipo === 'decisao' && n.status === 'ativo').arquivos, ['src/auth/login.ts'], 'caminho absoluto vira relativo');
-  assert.match(fs.readFileSync(path.join(MEM, 'conhecimento', 'armadilha-cupom-aplicado-duas-vezes.md'), 'utf8'), /\[\[conceito-checkout\]\]/, 'link pro Obsidian');
+  assert.deepEqual(nos.find((n) => n.tipo === 'decisao' && n.status === 'ativo').arquivos, ['src/auth/login.ts'], 'an absolute path becomes relative');
+  assert.match(fs.readFileSync(path.join(MEM, 'conhecimento', 'armadilha-cupom-aplicado-duas-vezes.md'), 'utf8'), /\[\[conceito-checkout\]\]/, 'Obsidian link');
 });
 
 // ---------------------------------------------------------------- busca
-test('busca acha pelo grafo o que não tem a palavra, respeita orçamento e esconde o substituído', async () => {
+test('search finds graph neighbors without the query word, respects budget, and hides superseded nodes', async () => {
   const { atualizarIndice } = await lib('mapa.mjs');
   const { buscarContexto } = await lib('busca.mjs');
   const codigo = atualizarIndice(MEM, PROJ, { projeto: 'loja' });
   const r = buscarContexto({ m: MEM, raiz: PROJ, codigo, pergunta: 'problema ao finalizar compra', termos: ['checkout'], orcamento: 800 });
-  assert.match(r, /Cupom aplicado duas vezes/, 'veio pela ligação com Checkout, sem a palavra "compra"');
-  assert.match(r, /ligado a/);
+  assert.match(r, /Cupom aplicado duas vezes/, 'found through the Checkout link without the word "compra"');
+  assert.match(r, /linked to/);
   assert.ok(r.length < 800 * 3.5 + 200);
   const s = buscarContexto({ m: MEM, raiz: PROJ, codigo, pergunta: 'como guardamos a sessão do login' });
   assert.match(s, /Usar JWT/);
-  assert.doesNotMatch(s, /\] Sessão em cookie/, 'decisão substituída não aparece');
-  assert.match(s, /substitui "Sessão em cookie"/);
+  assert.doesNotMatch(s, /\] Sessão em cookie/, 'superseded decision is hidden');
+  assert.match(s, /replaces "Sessão em cookie"/);
   const a = buscarContexto({ m: MEM, raiz: PROJ, codigo, pergunta: 'onde fica aplicarCupom' });
-  assert.match(a, /\[arquivo\] src\/desconto\/cupom\.ts.*citado/);
+  assert.match(a, /\[file\] src\/desconto\/cupom\.ts.*mentioned/);
 });
 
-test('nota fica marcada quando o arquivo dela muda depois', async () => {
+test('note is marked stale when its source file changes later', async () => {
   const { buscarContexto } = await lib('busca.mjs');
   const { indiceFresco } = await lib('mapa.mjs');
   const futuro = new Date(Date.now() + 10 * 60e3);
   fs.utimesSync(path.join(PROJ, 'src/desconto/cupom.ts'), futuro, futuro);
   const r = buscarContexto({ m: MEM, raiz: PROJ, codigo: indiceFresco(MEM, PROJ), pergunta: 'cupom duas vezes' });
-  assert.match(r, /⚠ src\/desconto\/cupom\.ts mudou depois/);
+  assert.match(r, /⚠ src\/desconto\/cupom\.ts changed after/);
 });
 
 // ---------------------------------------------------------------- mapa
-test('mapa nível 0 é curto e o resumo escrito pelo Claude sobrevive à regeneração', async () => {
+test('level-0 map stays short and a curated summary survives regeneration', async () => {
   const { escreverResumo, gerarMapa, lerMapa, lerIndice } = await lib('mapa.mjs');
   const codigo = lerIndice(MEM).codigo;
   escreverResumo(MEM, 'mapa', 'Loja online: React + API Node + worker Python de cobrança.', codigo, 'loja');
@@ -115,28 +115,28 @@ test('mapa nível 0 é curto e o resumo escrito pelo Claude sobrevive à regener
   const m = lerMapa(MEM);
   assert.match(m, /Loja online/);
   assert.match(m, /src\/desconto.*Regras de cupom/);
-  assert.match(m, /Decisões:.*Usar JWT/);
+  assert.match(m, /Decisions:.*Usar JWT/);
   assert.doesNotMatch(m, /Sessão em cookie/);
-  assert.ok(m.length / 3.5 < 900, `mapa com ~${Math.round(m.length / 3.5)} tokens`);
+  assert.ok(m.length / 3.5 < 900, `map has ~${Math.round(m.length / 3.5)} tokens`);
   assert.match(lerMapa(MEM, 'src/desconto'), /Cupom aplicado duas vezes/);
 });
 
 // ---------------------------------------------------------------- hooks
-test('medidor fica quieto abaixo do limite e pede registro + handoff uma vez', () => {
+test('meter stays quiet below the limit and requests registration plus handoff once', () => {
   assert.equal(hook('medidor', { session_id: 's1', hook_event_name: 'PostToolUse', cwd: PROJ, transcript_path: transcript('t-baixo', 50000) }), null);
   const t = transcript('t-alto', 130000);
   const out = hook('medidor', { session_id: 's2', hook_event_name: 'PostToolUse', cwd: PROJ, transcript_path: t });
-  assert.match(out.additionalContext, /130k de 150k/);
+  assert.match(out.additionalContext, /130k of 150k/);
   assert.match(out.additionalContext, /rubi_registrar/);
   assert.match(out.additionalContext, /rubi_salvar_handoff/);
-  assert.equal(hook('medidor', { session_id: 's2', hook_event_name: 'PostToolUse', cwd: PROJ, transcript_path: t }), null, 'não repete');
+  assert.equal(hook('medidor', { session_id: 's2', hook_event_name: 'PostToolUse', cwd: PROJ, transcript_path: t }), null, 'does not repeat');
   const sem = hook('medidor', { session_id: 's3', hook_event_name: 'UserPromptSubmit', cwd: PROJ, transcript_path: t }, { CLAUDE_CODE_AUTO_COMPACT_WINDOW: '' });
   assert.match(sem.additionalContext, /\/compact/);
 });
 
-test('início injeta o mapa; compactação grava registro e devolve o handoff', async () => {
+test('startup injects the map; compaction saves a record and restores the handoff', async () => {
   const ini = hook('inicio', { session_id: 's4', source: 'startup', cwd: PROJ });
-  assert.match(ini.additionalContext, /Mapa do projeto/);
+  assert.match(ini.additionalContext, /Project map/);
   assert.match(ini.additionalContext, /Loja online/);
   assert.match(ini.additionalContext, /rubi_contexto/);
 
@@ -147,23 +147,23 @@ test('início injeta o mapa; compactação grava registro e devolve o handoff', 
   assert.equal(sessoes.length, 1);
   const reg = fs.readFileSync(path.join(MEM, 'sessoes', sessoes[0]), 'utf8');
   assert.match(reg, /arruma o cupom/);
-  assert.match(reg, /arquivos: \["src\/desconto\/cupom.ts"\]/, 'registro ligado ao arquivo no grafo');
+  assert.match(reg, /arquivos: \["src\/desconto\/cupom.ts"\]/, 'record is linked to the file in the graph');
   const pos = hook('inicio', { session_id: 's4', source: 'compact', cwd: PROJ });
   assert.match(pos.additionalContext, /teste do carrinho/);
-  assert.match(pos.additionalContext, /Registro automático/);
+  assert.match(pos.additionalContext, /Automatic record/);
   assert.ok(fs.readFileSync(path.join(MEM, '.gitignore'), 'utf8').includes('.indice.json'));
 });
 
-test('lembrança automática: o pedido do usuário já traz o conhecimento relevante', () => {
+test('automatic recall injects relevant knowledge with the user request', () => {
   const r = hook('lembrar', { session_id: 'l1', hook_event_name: 'UserPromptSubmit', cwd: PROJ, prompt: 'o desconto do cupom está sendo aplicado duas vezes no carrinho' });
-  assert.match(r.additionalContext, /Da memória do projeto/);
+  assert.match(r.additionalContext, /Relevant project memory/);
   assert.match(r.additionalContext, /Cupom aplicado duas vezes/);
   assert.ok(r.additionalContext.length < 700 * 3.5 + 300);
-  assert.equal(hook('lembrar', { session_id: 'l2', hook_event_name: 'UserPromptSubmit', cwd: PROJ, prompt: 'gere um poema sobre o mar azul' }), null, 'nada relevante, nada injetado');
-  assert.equal(hook('lembrar', { session_id: 'l3', hook_event_name: 'UserPromptSubmit', cwd: PROJ, prompt: '/rubi:raio-x' }), null, 'comando não dispara');
+  assert.equal(hook('lembrar', { session_id: 'l2', hook_event_name: 'UserPromptSubmit', cwd: PROJ, prompt: 'gere um poema sobre o mar azul' }), null, 'nothing relevant means nothing injected');
+  assert.equal(hook('lembrar', { session_id: 'l3', hook_event_name: 'UserPromptSubmit', cwd: PROJ, prompt: '/rubi:raio-x' }), null, 'commands do not trigger recall');
 });
 
-test('colheita: depois de explorar sem registrar, pede o registro uma vez', () => {
+test('harvest requests registration once after exploration without stored knowledge', () => {
   const leituras = (n, extra = []) => {
     const p = path.join(TMP, `colhe-${n}-${extra.length}.jsonl`);
     const usos = [...Array.from({ length: n }, (_, i) => ({ type: 'tool_use', id: `r${i}`, name: 'Read', input: { file_path: 'x' } })), ...extra];
@@ -175,22 +175,22 @@ test('colheita: depois de explorar sem registrar, pede o registro uma vez', () =
   assert.equal(out.decision, 'block');
   assert.match(out.reason, /rubi_registrar/);
   const de_novo = spawnSync(process.execPath, [path.join(RAIZ, 'scripts', 'hook.mjs'), 'colher'], { input: JSON.stringify({ session_id: 'c1', cwd: PROJ, transcript_path: leituras(12), stop_hook_active: true }), env, encoding: 'utf8' });
-  assert.equal(de_novo.stdout, '', 'não entra em loop');
+  assert.equal(de_novo.stdout, '', 'does not loop');
   const registrou = spawnSync(process.execPath, [path.join(RAIZ, 'scripts', 'hook.mjs'), 'colher'], { input: JSON.stringify({ session_id: 'c2', cwd: PROJ, transcript_path: leituras(6, [{ type: 'tool_use', id: 'g', name: 'mcp__plugin_rubi_rubi__rubi_registrar', input: {} }]) }), env, encoding: 'utf8' });
-  assert.equal(registrou.stdout, '', 'quem já registrou não é cobrado');
+  assert.equal(registrou.stdout, '', 'does not prompt after knowledge was stored');
   const pouco = spawnSync(process.execPath, [path.join(RAIZ, 'scripts', 'hook.mjs'), 'colher'], { input: JSON.stringify({ session_id: 'c3', cwd: PROJ, transcript_path: leituras(6) }), env, encoding: 'utf8' });
-  assert.equal(pouco.stdout, '', 'pouca exploração não dispara');
+  assert.equal(pouco.stdout, '', 'limited exploration does not trigger it');
 });
 
-test('guarda barra arquivo gigante uma vez e libera na segunda', () => {
+test('read guard blocks a huge file once and allows the second attempt', () => {
   const grande = path.join(PROJ, 'grande.log');
   fs.writeFileSync(grande, 'linha de log bem comprida aqui\n'.repeat(5000));
   const e = { session_id: 's6', tool_name: 'Read', tool_input: { file_path: grande }, cwd: PROJ };
   const out = hook('guarda', e);
   assert.equal(out.permissionDecision, 'deny');
-  assert.match(out.permissionDecisionReason, /5001 linhas/);
+  assert.match(out.permissionDecisionReason, /5001 lines/);
   assert.equal(hook('guarda', e), null);
-  assert.equal(hook('guarda', { ...e, session_id: 's7', tool_input: { file_path: grande, limit: 100 } }), null, 'com limit passa');
+  assert.equal(hook('guarda', { ...e, session_id: 's7', tool_input: { file_path: grande, limit: 100 } }), null, 'a limited read is allowed');
   assert.equal(hook('guarda', { session_id: 's8', tool_name: 'Bash', tool_input: { command: 'cat grande.log' }, cwd: PROJ }).permissionDecision, 'deny');
 });
 
@@ -210,13 +210,13 @@ function mcpStdio(extraEnv) {
   return { chamar, fechar: () => p.kill() };
 }
 
-test('MCP stdio: registrar e consultar pelo grafo, no projeto atual', async () => {
+test('MCP stdio stores and searches the graph in the current project', async () => {
   const s = mcpStdio({ CLAUDE_PROJECT_DIR: PROJ });
   assert.equal((await s.chamar('initialize', { protocolVersion: '2025-06-18' })).result.serverInfo.name, 'rubi');
   const nomes = (await s.chamar('tools/list')).result.tools.map((f) => f.name);
   for (const n of ['rubi_contexto', 'rubi_registrar', 'rubi_mapa', 'rubi_escrever_resumo', 'rubi_salvar_handoff', 'rubi_raio_x']) assert.ok(nomes.includes(n), n);
   const reg = await s.chamar('tools/call', { name: 'rubi_registrar', arguments: { fatos: [{ tipo: 'como-fazer', titulo: 'Rodar o worker', texto: 'python -m worker.fila com REDIS_URL definido.', arquivos: ['worker/fila.py'] }] } });
-  assert.match(reg.result.content[0].text, /criado: conhecimento\/como-fazer-rodar-o-worker\.md/);
+  assert.match(reg.result.content[0].text, /created: conhecimento\/como-fazer-rodar-o-worker\.md/);
   const ctx = await s.chamar('tools/call', { name: 'rubi_contexto', arguments: { pergunta: 'como subir a fila de cobrança', termos: ['worker', 'redis'] } });
   assert.match(ctx.result.content[0].text, /Rodar o worker/);
   const mapa = await s.chamar('tools/call', { name: 'rubi_mapa', arguments: { modulo: 'worker' } });
@@ -224,7 +224,7 @@ test('MCP stdio: registrar e consultar pelo grafo, no projeto atual', async () =
   s.fechar();
 });
 
-test('MCP com outro cliente (Codex, Cursor...): descobre o projeto pelos roots e manda instruções sem hooks', async () => {
+test('MCP with another client discovers the project through roots and sends instructions without hooks', async () => {
   const p = spawn(process.execPath, [path.join(RAIZ, 'scripts', 'mcp-server.mjs')], { cwd: TMP, env: { ...env } });
   const respostas = new Map();
   let buf = '';
@@ -246,33 +246,33 @@ test('MCP com outro cliente (Codex, Cursor...): descobre o projeto pelos roots e
   enviar({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'rubi_registrar', arguments: { fatos: [{ tipo: 'decisao', titulo: 'Fila com Redis', texto: 'Redis porque o cliente já usa.' }] } } });
   await esperar(2);
   p.kill();
-  assert.ok(fs.existsSync(path.join(MEM, 'conhecimento', 'decisao-fila-com-redis.md')), 'gravou na pasta .rubi do projeto informado pelos roots');
+  assert.ok(fs.existsSync(path.join(MEM, 'conhecimento', 'decisao-fila-com-redis.md')), 'stored in the project .rubi directory supplied through roots');
 });
 
-test('conectar: configura Codex (TOML + hooks + AGENTS.md) e Cursor (JSON) sem duplicar', () => {
+test('connector configures Codex and Cursor without duplicates', () => {
   const home = path.join(TMP, 'home-agentes');
   const codexHome = path.join(home, '.codex');
   fs.mkdirSync(codexHome, { recursive: true });
   fs.writeFileSync(path.join(codexHome, 'config.toml'), 'model = "gpt-5"\n');
   const rodar = (...a) => spawnSync(process.execPath, [path.join(RAIZ, 'scripts', 'conectar.mjs'), ...a, '--projeto', PROJ], { env: { ...env, HOME: home, USERPROFILE: home, CODEX_HOME: codexHome }, encoding: 'utf8' });
   assert.equal(rodar('codex').status, 0);
-  assert.equal(rodar('codex').status, 0, 'rodar de novo não pode quebrar');
+  assert.equal(rodar('codex').status, 0, 'running it again does not break');
   const toml = fs.readFileSync(path.join(codexHome, 'config.toml'), 'utf8');
-  assert.match(toml, /^model = "gpt-5"/, 'mantém o que já existia');
-  assert.equal((toml.match(/\[mcp_servers\.rubi\]/g) || []).length, 1, 'não duplica o servidor');
+  assert.match(toml, /^model = "gpt-5"/, 'preserves existing configuration');
+  assert.equal((toml.match(/\[mcp_servers\.rubi\]/g) || []).length, 1, 'does not duplicate the server');
   const hooks = JSON.parse(fs.readFileSync(path.join(codexHome, 'hooks.json'), 'utf8')).hooks;
   assert.equal(hooks.SessionStart.length, 1);
   assert.match(hooks.UserPromptSubmit[0].hooks[0].command, /hook\.mjs" lembrar/);
   const agents = fs.readFileSync(path.join(PROJ, 'AGENTS.md'), 'utf8');
-  assert.equal((agents.match(/rubi:inicio/g) || []).length, 1, 'bloco de instruções aparece uma vez só');
-  assert.ok(fs.existsSync(path.join(codexHome, 'config.toml.bak-rubi')), 'faz backup');
+  assert.equal((agents.match(/rubi:inicio/g) || []).length, 1, 'instructions block appears once');
+  assert.ok(fs.existsSync(path.join(codexHome, 'config.toml.bak-rubi')), 'creates a backup');
   assert.equal(rodar('cursor').status, 0);
   const cursor = JSON.parse(fs.readFileSync(path.join(home, '.cursor', 'mcp.json'), 'utf8'));
   assert.equal(cursor.mcpServers.rubi.env.RUBI_PROJECT_DIR, '${workspaceFolder}');
   assert.ok(fs.existsSync(path.join(PROJ, '.cursor', 'rules', 'rubi.mdc')));
 });
 
-test('MCP HTTP (app): exige token, guarda por projeto no vault e não expõe raio-x', async () => {
+test('MCP HTTP requires a token, stores by project, and does not expose X-ray', async () => {
   const token = 'x'.repeat(32);
   const p = spawn(process.execPath, [path.join(RAIZ, 'scripts', 'mcp-server.mjs'), '--http', '--porta', '18787'], { env: { ...env, RUBI_TOKEN: token } });
   await new Promise((r) => p.stderr.once('data', r));
@@ -287,7 +287,7 @@ test('MCP HTTP (app): exige token, guarda por projeto no vault e não expõe rai
   const lista = await post(url, { jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'rubi_projetos', arguments: {} } });
   p.kill();
   assert.match(lista.result.content[0].text, /tcc/);
-  assert.doesNotMatch(lista.result.content[0].text, /pasta-qualquer/, 'pasta sem memória do Rubi não é projeto');
+  assert.doesNotMatch(lista.result.content[0].text, /pasta-qualquer/, 'a folder without Rubi memory is not a project');
   assert.match(r.result.content[0].text, /Citações em ABNT/);
   assert.ok(fs.existsSync(path.join(env.RUBI_VAULT, 'tcc', 'conhecimento', 'preferencia-citacoes-em-abnt.md')));
 });

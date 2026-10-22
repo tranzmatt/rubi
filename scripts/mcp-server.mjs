@@ -102,7 +102,7 @@ const FERRAMENTAS = [
       const codigo = codigoDe(a);
       const r = registrar(m, fatos, { raiz: a.raiz, modulos: Object.keys(codigo.modulos || {}) });
       if (m === a.m) gerarMapa(a.m, codigo, { projeto: a.nome });
-      return txt(r.join('\n') || 'Nada registrado (faltou título?).');
+      return txt(r.join('\n') || 'Nothing stored (was a title missing?).');
     },
   },
   {
@@ -112,7 +112,7 @@ const FERRAMENTAS = [
     run: ({ modulo, projeto }) => {
       const a = alvo(projeto);
       if (a.raiz) indiceFresco(a.m, a.raiz);
-      return txt(lerMapa(a.m, modulo) || (modulo ? `Módulo "${modulo}" não encontrado. Veja a lista em rubi_mapa sem argumentos.` : 'Mapa ainda vazio.'));
+      return txt(lerMapa(a.m, modulo) || (modulo ? `Module "${modulo}" was not found. Call rubi_mapa without arguments to see the list.` : 'The map is empty.'));
     },
   },
   {
@@ -121,7 +121,7 @@ const FERRAMENTAS = [
     inputSchema: { type: 'object', properties: { alvo: { type: 'string' }, texto: { type: 'string' }, ...projetoProp }, required: ['alvo', 'texto'] },
     run: ({ alvo: qual, texto, projeto }) => {
       const a = alvo(projeto);
-      return txt(`Resumo salvo em ${escreverResumo(a.m, qual, texto, codigoDe(a), a.nome)}`);
+      return txt(`Summary saved to ${escreverResumo(a.m, qual, texto, codigoDe(a), a.nome)}`);
     },
   },
   {
@@ -141,7 +141,7 @@ const FERRAMENTAS = [
       const a = alvo(projeto);
       const c = salvarHandoff(a.m, conteudo, { sessao: ctx.sessao, origem: MODO_APP ? 'app' : 'claude-code', arquivos });
       gerarMapa(a.m, codigoDe(a), { projeto: a.nome });
-      return txt(`Handoff salvo em ${c}`);
+      return txt(`Handoff saved to ${c}`);
     },
   },
   {
@@ -150,7 +150,7 @@ const FERRAMENTAS = [
     inputSchema: { type: 'object', properties: { ...projetoProp } },
     run: ({ projeto }) => {
       const h = ultimoHandoff(alvo(projeto).m);
-      return txt(h ? `(${h.caminho}, ${new Date(h.mtime).toLocaleString('pt-BR')})\n\n${h.texto}` : 'Nenhum handoff salvo ainda.');
+      return txt(h ? `(${h.caminho}, ${new Date(h.mtime).toLocaleString('en-US')})\n\n${h.texto}` : 'No handoff has been saved yet.');
     },
   },
 ];
@@ -162,7 +162,7 @@ if (MODO_APP) {
     inputSchema: { type: 'object', properties: {} },
     run: () => {
       const ps = listarProjetosApp();
-      return txt(ps.length ? ps.map((p) => `- ${p.projeto}: ${p.conhecimento} nós, ${p.handoffs} handoffs`).join('\n') : 'Nada guardado ainda.');
+      return txt(ps.length ? ps.map((p) => `- ${p.projeto}: ${p.conhecimento} nodes, ${p.handoffs} handoffs`).join('\n') : 'Nothing has been stored yet.');
     },
   });
 } else {
@@ -227,22 +227,22 @@ async function tratar(msg, ctx) {
       return ok({ tools: FERRAMENTAS.map(({ run, ...f }) => f) });
     case 'tools/call': {
       const f = FERRAMENTAS.find((x) => x.name === params.name);
-      if (!f) return erro(-32602, `ferramenta desconhecida: ${params.name}`);
+      if (!f) return erro(-32602, `unknown tool: ${params.name}`);
       try {
         return ok(await f.run(params.arguments || {}, ctx));
       } catch (e) {
-        return ok({ ...txt(`Erro: ${e.message}`), isError: true });
+        return ok({ ...txt(`Error: ${e.message}`), isError: true });
       }
     }
     default:
-      return erro(-32601, `método não suportado: ${method}`);
+      return erro(-32601, `unsupported method: ${method}`);
   }
 }
 
 if (MODO_HTTP) {
   const token = process.env.RUBI_TOKEN;
   if (!token || token.length < 24) {
-    console.error('Defina RUBI_TOKEN com pelo menos 24 caracteres aleatórios.');
+    console.error('Set RUBI_TOKEN to a random string with at least 24 characters.');
     process.exit(1);
   }
   const porta = Number(args[args.indexOf('--porta') + 1]) || 8787;
@@ -257,7 +257,7 @@ if (MODO_HTTP) {
     const respostas = (await Promise.all((lote ? msg : [msg]).map((m) => tratar(m, {})))).filter(Boolean);
     if (!respostas.length) { res.writeHead(202).end(); return; }
     res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(lote ? respostas : respostas[0]));
-  }).listen(porta, '127.0.0.1', () => console.error(`rubi MCP em http://127.0.0.1:${porta}/mcp/<token>`));
+  }).listen(porta, '127.0.0.1', () => console.error(`Rubi MCP listening at http://127.0.0.1:${porta}/mcp/<token>`));
 } else {
   // Uma mensagem por linha, respondidas em ordem.
   let buffer = '';

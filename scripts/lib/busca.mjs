@@ -53,7 +53,7 @@ function documentos({ m, mp, codigo, raiz }) {
     const nome = campos.modulo || path.basename(p, '.md');
     // só o resumo escrito pelo Claude conta como texto; as listas de ligação viram ruído
     const resumo = (corpo.match(/<!-- rubi:resumo -->([\s\S]*?)<!-- \/rubi:resumo -->/)?.[1] || '').replace(/^_.*_$/m, '').trim();
-    add({ chave: `mod:${nome}`, tipo: 'modulo', titulo: `módulo ${nome}`, texto: resumo, resumo, peso: resumo ? 0.8 : 0.5, caminho: `modulos/${path.basename(p)}` });
+    add({ chave: `mod:${nome}`, tipo: 'modulo', titulo: `module ${nome}`, texto: resumo, resumo, peso: resumo ? 0.8 : 0.5, caminho: `modulos/${path.basename(p)}` });
   }
   const recentes = (sub, n) => listarMd(path.join(m, sub)).slice(-n);
   for (const [sub, n, peso, tipo] of [['handoffs', 8, 0.7, 'handoff'], ['sessoes', 15, 0.4, 'sessao']]) {
@@ -209,12 +209,12 @@ export function buscarContexto({ m, mp, raiz, codigo, pergunta = '', termos = []
   }
 
   const motivo = (k) => {
-    if (entidades.has(k)) return 'citado';
+    if (entidades.has(k)) return 'mentioned';
     if (texto.has(k)) return null;
     let melhor = null, w = 0;
     for (const [y, peso] of viz.get(k) || []) if (sementes.has(y) && peso * sementes.get(y) > w) { w = peso * sementes.get(y); melhor = y; }
     const d = melhor && porChave.get(melhor);
-    return d ? `ligado a ${d.no ? `"${d.titulo}"` : d.arquivo || d.titulo}` : 'vizinho no grafo';
+    return d ? `linked to ${d.no ? `"${d.titulo}"` : d.arquivo || d.titulo}` : 'graph neighbor';
   };
 
   const maxChars = orcamento * 3.5;
@@ -228,27 +228,27 @@ export function buscarContexto({ m, mp, raiz, codigo, pergunta = '', termos = []
     if (d.no) {
       const n = d.no, extras = [];
       if (n.arquivos.length) extras.push(n.arquivos.slice(0, 3).map((f) => `\`${f}\``).join(', '));
-      if (n.substitui) extras.push(`substitui "${porChave.get(`no:${n.substitui}`)?.titulo || n.substitui}"`);
-      if (n.status === 'substituido') extras.push(`SUBSTITUÍDO por ${n.substituido_por}`);
+      if (n.substitui) extras.push(`replaces "${porChave.get(`no:${n.substitui}`)?.titulo || n.substitui}"`);
+      if (n.status === 'substituido') extras.push(`SUPERSEDED by ${n.substituido_por}`);
       const mud = d.origem === 'projeto' && mudouDepois(raiz, n);
-      if (mud) extras.push(`⚠ ${mud.f} mudou depois desta nota`);
+      if (mud) extras.push(`⚠ ${mud.f} changed after this note was written`);
       if (mot) extras.push(mot);
-      b = `[${ROTULO[n.tipo] || n.tipo}${d.origem === 'pessoal' ? ', pessoal' : ''}] ${n.titulo} — ${n.caminho}\n  ${extras.length ? extras.join(' · ') + '\n  ' : ''}${trecho(n.texto, q)}`;
+      b = `[${ROTULO[n.tipo] || n.tipo}${d.origem === 'pessoal' ? ', personal' : ''}] ${n.titulo} — ${n.caminho}\n  ${extras.length ? extras.join(' · ') + '\n  ' : ''}${trecho(n.texto, q)}`;
     } else if (d.tipo === 'arquivo') {
       const a = d.info, qs = new Set(q);
       const simb = [...a.simbolos].sort((x, y) => tokens(y).some((t) => qs.has(t)) - tokens(x).some((t) => qs.has(t))).slice(0, 8);
       const usadoPor = Object.values(codigo.arquivos).filter((o) => o.imports?.includes(d.arquivo)).length;
-      b = `[arquivo] ${d.arquivo} — módulo ${a.modulo}${usadoPor ? `, usado por ${usadoPor}` : ''}${mot ? ` · ${mot}` : ''}${simb.length ? `\n  ${simb.join(', ')}` : ''}`;
+      b = `[file] ${d.arquivo} — module ${a.modulo}${usadoPor ? `, used by ${usadoPor}` : ''}${mot ? ` · ${mot}` : ''}${simb.length ? `\n  ${simb.join(', ')}` : ''}`;
     } else if (d.tipo === 'modulo') {
       const info = codigo?.modulos?.[k.slice(4)];
-      b = `[módulo] ${k.slice(4)} — ${d.caminho}${info ? ` (${info.arquivos.length} arquivos)` : ''}\n  ${d.resumo ? trecho(d.resumo, q) : `centrais: ${(info?.arquivos || []).slice(0, 4).join(', ')}`}`;
+      b = `[module] ${k.slice(4)} — ${d.caminho}${info ? ` (${info.arquivos.length} files)` : ''}\n  ${d.resumo ? trecho(d.resumo, q) : `central files: ${(info?.arquivos || []).slice(0, 4).join(', ')}`}`;
     } else {
       b = `[${d.tipo}] ${d.caminho}${mot ? ` · ${mot}` : ''}\n  ${trecho(d.texto, q)}`;
     }
     if (usados + b.length > maxChars && blocos.length) break;
     blocos.push(b); usados += b.length;
   }
-  if (!blocos.length) return soConhecimento ? null : 'Nada na memória sobre isso ainda. Se descobrir algo durável, registre com rubi_registrar.';
+  if (!blocos.length) return soConhecimento ? null : 'Nothing in memory matches this yet. Store durable discoveries with rubi_registrar.';
   if (soConhecimento) return blocos.join('\n\n');
-  return blocos.join('\n\n') + `\n\n(${blocos.length} itens, ~${Math.round(usados / 3.5)} tokens. Abra um item com rubi_ler; zoom no módulo com rubi_mapa.)`;
+  return blocos.join('\n\n') + `\n\n(${blocos.length} items, ~${Math.round(usados / 3.5)} tokens. Open an item with rubi_ler; zoom into a module with rubi_mapa.)`;
 }

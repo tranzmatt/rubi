@@ -10,10 +10,11 @@
   },
   "scripts": {
     "test": "node --test test/plugin.test.mjs",
-    "instalar": "node scripts/instalar.mjs",
-    "raio-x": "node scripts/raio-x.mjs",
-    "auditar": "node scripts/auditar.mjs",
-    "empacotar": "node scripts/empacotar.mjs",
-    "servidor": "node scripts/mcp-server.mjs --http"
+    "install-rubi": "node scripts/instalar.mjs",
+    "connect": "node scripts/conectar.mjs",
+    "x-ray": "node scripts/raio-x.mjs",
+    "audit": "node scripts/auditar.mjs",
+    "package": "node scripts/empacotar.mjs",
+    "server": "node scripts/mcp-server.mjs --http"
   }
 }

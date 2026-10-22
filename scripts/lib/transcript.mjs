@@ -69,17 +69,17 @@ export function registroSessao(arquivo) {
 }
 
 export function registroEmMarkdown(r) {
-  const lista = (itens) => (itens.length ? itens.map((i) => `- ${i}`).join('\n') : '- (nada)');
+  const lista = (itens) => (itens.length ? itens.map((i) => `- ${i}`).join('\n') : '- (none)');
   return [
-    `# Registro automático da sessão`,
-    `Pasta: \`${r.cwd}\``,
-    `## Pedidos do usuário (${r.pedidos.length})`,
+    `# Automatic session record`,
+    `Directory: \`${r.cwd}\``,
+    `## User requests (${r.pedidos.length})`,
     lista(r.pedidos.slice(-15).map((p) => p.replace(/\n+/g, ' / '))),
-    `## Arquivos alterados (${r.arquivos.length})`,
+    `## Changed files (${r.arquivos.length})`,
     lista(r.arquivos.slice(0, 40).map(([f, n]) => `\`${f}\` (${n}x)`)),
-    `## Comandos rodados (últimos ${Math.min(25, r.comandos.length)} de ${r.comandos.length})`,
+    `## Commands run (last ${Math.min(25, r.comandos.length)} of ${r.comandos.length})`,
     lista(r.comandos.slice(-25)),
-    `## Última resposta antes da compactação`,
-    corta(r.ultimaFala, 2500) || '(nenhuma)',
+    `## Last response before compaction`,
+    corta(r.ultimaFala, 2500) || '(none)',
   ].join('\n\n');
 }

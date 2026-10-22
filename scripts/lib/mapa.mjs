@@ -63,13 +63,13 @@ export function gerarMapa(m, codigo, { projeto }) {
     for (const [f, a] of Object.entries(codigo.arquivos)) if (a.modulo !== nome && (a.imports || []).some((i) => arqMod(i) === nome)) usadoPor.add(a.modulo);
     const ligados = nos.filter((n) => n.arquivos.some((f) => arqMod(f) === nome || f.startsWith(`${nome}/`)) || n.liga.some((l) => l.alvo === `modulo:${nome}`));
     const corpo = [
-      `# Módulo ${nome}`,
-      blocoResumo(resumo, '_Sem resumo ainda. Quando entender o módulo, escreva 2-5 linhas com rubi_escrever_resumo (alvo "modulo:' + nome + '")._'),
-      `## Arquivos (${info.arquivos.length}, por centralidade)`,
+      `# Module ${nome}`,
+      blocoResumo(resumo, '_No summary yet. Once you understand this module, write 2-5 lines with rubi_escrever_resumo (target "modulo:' + nome + '")._'),
+      `## Files (${info.arquivos.length}, by centrality)`,
       info.arquivos.slice(0, 30).map((f) => `- \`${f}\`${codigo.arquivos[f].simbolos.length ? ` — ${codigo.arquivos[f].simbolos.slice(0, 6).join(', ')}` : ''}`).join('\n') + (info.arquivos.length > 30 ? `\n- … +${info.arquivos.length - 30}` : ''),
-      depende.size ? `## Depende de\n${[...depende].map((x) => `[[modulos/${idDe(x)}|${x}]]`).join(' · ')}` : '',
-      usadoPor.size ? `## Usado por\n${[...usadoPor].map((x) => `[[modulos/${idDe(x)}|${x}]]`).join(' · ')}` : '',
-      ligados.length ? `## Conhecimento ligado\n${ligados.map((n) => `- [[conhecimento/${n.id}|${n.titulo}]] (${ROTULO[n.tipo]})`).join('\n')}` : '',
+      depende.size ? `## Depends on\n${[...depende].map((x) => `[[modulos/${idDe(x)}|${x}]]`).join(' · ')}` : '',
+      usadoPor.size ? `## Used by\n${[...usadoPor].map((x) => `[[modulos/${idDe(x)}|${x}]]`).join(' · ')}` : '',
+      ligados.length ? `## Related knowledge\n${ligados.map((n) => `- [[conhecimento/${n.id}|${n.titulo}]] (${ROTULO[n.tipo]})`).join('\n')}` : '',
     ].filter(Boolean).join('\n\n');
     fs.writeFileSync(p, comFrontmatter({ tipo: 'modulo', modulo: nome, arquivos: info.arquivos.length }, corpo));
   }
@@ -81,19 +81,19 @@ export function gerarMapa(m, codigo, { projeto }) {
   const porTipo = (t, max = 6) => nos.filter((n) => n.tipo === t && (t !== 'bug' || n.status !== 'resolvido'))
     .sort((a, b) => String(b.atualizado).localeCompare(String(a.atualizado))).slice(0, max)
     .map((n) => `[[conhecimento/${n.id}|${n.titulo}]]`);
-  const conhecimento = [['decisao', 'Decisões'], ['armadilha', 'Armadilhas'], ['bug', 'Bugs abertos'], ['preferencia', 'Preferências'], ['como-fazer', 'Como fazer'], ['conceito', 'Conceitos']]
+  const conhecimento = [['decisao', 'Decisions'], ['armadilha', 'Gotchas'], ['bug', 'Open bugs'], ['preferencia', 'Preferences'], ['como-fazer', 'How-tos'], ['conceito', 'Concepts']]
     .map(([t, r]) => { const l = porTipo(t); return l.length ? `- **${r}:** ${l.join(' · ')}` : ''; }).filter(Boolean);
   const h = ultimoHandoff(m);
   const objetivo = h?.texto.split('\n').find((l) => l.trim() && !l.startsWith('#'))?.trim().slice(0, 160);
 
   const corpo = [
-    `# Mapa: ${projeto}`,
-    blocoResumo(visao, '_Sem visão geral ainda. Quando entender o projeto, escreva 3-6 linhas (o que é, stack, como rodar) com rubi_escrever_resumo (alvo "mapa")._'),
-    mods.length ? `## Módulos\n${mods.slice(0, 12).map(([n, i]) => `- [[modulos/${idDe(n)}|${n}]] (${i.arquivos.length})${linhaModulo[n] ? ` — ${linhaModulo[n]}` : ` — centrais: ${i.arquivos.slice(0, 3).map(base).join(', ')}`}`).join('\n')}${mods.length > 12 ? `\n- … +${mods.length - 12} módulos` : ''}` : '',
-    centrais.length ? `## Arquivos centrais\n${centrais.join(' · ')}` : '',
-    conhecimento.length ? `## Conhecimento (${nos.length} nós)\n${conhecimento.join('\n')}` : '',
-    h ? `## Último handoff\n${new Date(h.mtime).toLocaleString('pt-BR')} — ${objetivo || ''} ([[${h.caminho.replace(/\.md$/, '')}]])` : '',
-    '_Zoom: rubi_mapa(modulo) · busca: rubi_contexto · guardar: rubi_registrar_',
+    `# Map: ${projeto}`,
+    blocoResumo(visao, '_No overview yet. Once you understand the project, write 3-6 lines (what it is, its stack, and how to run it) with rubi_escrever_resumo (target "mapa")._'),
+    mods.length ? `## Modules\n${mods.slice(0, 12).map(([n, i]) => `- [[modulos/${idDe(n)}|${n}]] (${i.arquivos.length})${linhaModulo[n] ? ` — ${linhaModulo[n]}` : ` — central files: ${i.arquivos.slice(0, 3).map(base).join(', ')}`}`).join('\n')}${mods.length > 12 ? `\n- … +${mods.length - 12} modules` : ''}` : '',
+    centrais.length ? `## Central files\n${centrais.join(' · ')}` : '',
+    conhecimento.length ? `## Knowledge (${nos.length} nodes)\n${conhecimento.join('\n')}` : '',
+    h ? `## Latest handoff\n${new Date(h.mtime).toLocaleString('en-US')} — ${objetivo || ''} ([[${h.caminho.replace(/\.md$/, '')}]])` : '',
+    '_Zoom: rubi_mapa(modulo) · search: rubi_contexto · store: rubi_registrar_',
   ].filter(Boolean).join('\n\n');
   fs.writeFileSync(pMapa, comFrontmatter({ tipo: 'mapa', projeto, atualizado: new Date().toISOString() }, corpo));
 }

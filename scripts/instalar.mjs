@@ -19,7 +19,7 @@ const CHAVE = 'CLAUDE_CODE_AUTO_COMPACT_WINDOW';
 function lerSettings() {
   try { return JSON.parse(fs.readFileSync(SETTINGS, 'utf8')); } catch (e) {
     if (e.code === 'ENOENT') return {};
-    throw new Error(`Não consegui ler ${SETTINGS}: ${e.message}. Corrija o JSON e rode de novo.`);
+    throw new Error(`Could not read ${SETTINGS}: ${e.message}. Fix the JSON and run the command again.`);
   }
 }
 
@@ -31,8 +31,8 @@ function gravarSettings(s) {
 
 if (args.includes('--desfazer')) {
   const s = lerSettings();
-  if (s.env?.[CHAVE]) { delete s.env[CHAVE]; gravarSettings(s); console.log(`Removido ${CHAVE} de ${SETTINGS}.`); }
-  else console.log('Nada a desfazer.');
+  if (s.env?.[CHAVE]) { delete s.env[CHAVE]; gravarSettings(s); console.log(`Removed ${CHAVE} from ${SETTINGS}.`); }
+  else console.log('Nothing to undo.');
   process.exit(0);
 }
 
@@ -42,26 +42,26 @@ let janela = Number(valor('--janela')) || 0;
 
 if (!args.includes('--sim') && process.stdin.isTTY) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  vault ||= (await rl.question(`Pasta do vault [${atual.vault}]: `)).trim() || atual.vault;
-  janela ||= Number((await rl.question('Compactar a conversa em quantos tokens? (100000 a 1000000) [150000]: ')).trim()) || 150000;
+  vault ||= (await rl.question(`Vault directory [${atual.vault}]: `)).trim() || atual.vault;
+  janela ||= Number((await rl.question('Compact conversations at how many tokens? (100000 to 1000000) [150000]: ')).trim()) || 150000;
   rl.close();
 }
 vault = path.resolve(vault || atual.vault);
 janela = Math.min(1e6, Math.max(1e5, janela || 150000));
 
 fs.mkdirSync(vault, { recursive: true });
-const leiame = path.join(vault, 'LEIA-ME.md');
+const leiame = path.join(vault, 'README.md');
 if (!fs.existsSync(leiame)) {
-  fs.writeFileSync(leiame, `# Vault do rubi
+  fs.writeFileSync(leiame, `# Rubi vault
 
-Uma pasta por projeto:
+One directory per project:
 
-- \`notas/\` conhecimento durável (decisões, mapas, armadilhas). Pode editar à vontade.
-- \`handoffs/\` "onde paramos", escritos pelo Claude antes de compactar ou trocar de janela.
-- \`sessoes/\` registro automático de cada trecho compactado.
-- \`_indice.md\` gerado sozinho, com links pra tudo.
+- \`notas/\` durable knowledge (decisions, maps, and gotchas). Edit these files whenever you want.
+- \`handoffs/\` where work stopped, written before compaction or moving to a new window.
+- \`sessoes/\` automatic records of compacted conversation sections.
+- \`_indice.md\` generated index with links to everything.
 
-Abra esta pasta como vault no Obsidian pra navegar pelos links.
+Open this directory as an Obsidian vault to browse the links.
 `);
 }
 salvarConfig({ vault, janela });
@@ -71,14 +71,14 @@ s.env = { ...(s.env || {}), [CHAVE]: String(janela) };
 gravarSettings(s);
 
 console.log(`
-rubi configurado.
+Rubi configured.
   Vault:        ${vault}
   Config:       ${ARQ_CONFIG}
-  Compactação:  ${janela} tokens (${CHAVE} em ${SETTINGS}; backup em settings.json.bak-rubi)
+  Compaction:   ${janela} tokens (${CHAVE} in ${SETTINGS}; backup in settings.json.bak-rubi)
 
-Agora instale o plugin dentro do Claude Code:
+Now install the plugin in Claude Code:
   /plugin marketplace add YURIBEDRAN/rubi
   /plugin install rubi@rubi
 
-Vale pras sessões novas. Pra desfazer a compactação cedo: node scripts/instalar.mjs --desfazer
+This applies to new sessions. To disable early compaction: node scripts/instalar.mjs --desfazer
 `);

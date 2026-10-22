@@ -1,45 +1,39 @@
 ---
 name: rubi
-description: Evita conversas gigantes que queimam o limite de uso. Quando a conversa fica longa, salva o "onde paramos" e leva o usuário pra uma conversa nova sem perder o fio. Use também quando o usuário disser "continua de onde parei", "lembra disso" ou citar um projeto salvo.
+description: Prevent long conversations from consuming the user's usage limit. When a conversation grows large, save where the work stopped so the user can continue in a new chat without losing context. Also use when the user says "continue where I left off," "remember this," or names a saved project.
 ---
 
-# Rubi: memória contínua
+# Rubi: continuous memory
 
-Toda mensagem numa conversa longa reenvia a conversa inteira. Por isso conversas gigantes gastam o limite de uso muito mais rápido. Esta skill mantém as conversas curtas sem que o usuário perca nada.
+Every new message in a long conversation resends the conversation so far. Large conversations therefore consume the usage limit much faster. This skill keeps conversations short without losing the thread.
 
-## 1. Perceber que a conversa ficou longa
+## 1. Notice when the conversation is long
 
-Aqui não existe medidor automático: quem percebe é você. Considere a conversa longa quando acontecer qualquer um destes:
-- Passou de umas 25 trocas de mensagem.
-- Entraram documentos, planilhas, PDFs ou blocos de código grandes.
-- O assunto mudou de fase (terminou uma parte e vai começar outra).
-- O usuário reclamou de limite, lentidão ou de você "esquecer" coisas.
+There is no automatic meter here. Treat the conversation as long when it exceeds about 25 message exchanges, contains large documents or code blocks, moves into a new phase, or the user complains about limits, slowness, or forgotten details.
 
-Nesse momento, ofereça uma vez, em uma frase: "A conversa ficou longa. Quer que eu salve onde paramos pra você continuar numa conversa nova? Gasta bem menos do seu limite." Se ele recusar, não insista até a próxima mudança de fase.
+Offer once: "This conversation is getting long. Would you like me to save where we stopped so you can continue in a new conversation? It will use much less of your limit." If the user declines, do not ask again until the work changes phase.
 
-## 2. Salvar o handoff
+## 2. Save a handoff
 
-Escreva uma nota curta (até ~800 palavras) com:
+Write a short note of no more than about 800 words:
 
 ```markdown
-# <assunto em uma linha>
-## Objetivo
-## O que já foi feito / decidido
-## Dados importantes (números, nomes, links, trechos que não podem se perder)
-## Próximo passo
+# <topic in one line>
+## Goal
+## Work completed and decisions made
+## Important details (numbers, names, links, and text that must not be lost)
+## Next step
 ```
 
-- **Com o conector Rubi** (ferramentas `rubi_*`): salve com `rubi_salvar_handoff`, com `projeto` = um nome curto do assunto (ex.: "tcc", "loja-da-ana"). Diga ao usuário: "Salvo. Abra uma conversa nova e diga: continua de onde parei em <projeto>."
-- **Sem conector**: entregue a nota num único bloco de código e diga: "Copie isso, abra uma conversa nova e cole com: continua daqui."
+- **With the Rubi connector** (`rubi_*` tools): call `rubi_salvar_handoff` with `projeto` set to a short topic name, such as `thesis` or `ana-store`. Tell the user: "Saved. Open a new conversation and say: continue where I left off in <project>."
+- **Without the connector:** return the note in one code block and tell the user to copy it into a new conversation with: "Continue from here."
 
-## 3. Continuar numa conversa nova
+## 3. Continue in a new conversation
 
-Se o usuário disser "continua de onde parei" (com ou sem projeto):
-- Com conector: `rubi_ultimo_handoff` (use `rubi_projetos` se não souber o nome) e siga a partir do próximo passo, sem pedir pra ele explicar de novo.
-- Se ele colar a nota: use-a como contexto e siga.
+When the user says "continue where I left off," call `rubi_ultimo_handoff`. Use `rubi_projetos` if you do not know the project name. Continue from the next step without asking the user to explain everything again. If the user pasted a handoff, use it as context and continue.
 
-## 4. Lembrar coisas duráveis
+## 4. Remember durable information
 
-Se o usuário disser "lembra disso", ou surgir algo que vale pra outras conversas, guarde com `rubi_registrar` (com conector). Use o tipo certo: `preferencia`, `decisao` (com o porquê), `conceito`, `como-fazer`. Ligue os fatos entre si com `liga`. Se algo mudou, use `substitui` e o antigo fica marcado. Antes de pedir pra ele repetir algo que talvez já tenha contado, procure com `rubi_contexto`, mandando também `termos` relacionados.
+When the user says "remember this," or shares something useful across conversations, store it with `rubi_registrar`. Choose the correct type: `preferencia`, `decisao` (including why), `conceito`, or `como-fazer`. Connect facts with `liga`. When something changes, use `substitui` so the previous fact is marked superseded. Before asking the user to repeat something they may have shared before, search with `rubi_contexto` and include related `termos`.
 
-Nunca salve senhas, documentos pessoais ou dados de cartão.
+Never store passwords, personal documents, or payment-card information.

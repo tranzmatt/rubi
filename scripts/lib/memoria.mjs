@@ -24,7 +24,7 @@ export function memoriaDoProjeto(dir) {
   return r ? path.join(r, '.rubi') : memoriaPessoal();
 }
 
-const GITIGNORE = '# índice derivado e registros automáticos: recriáveis, não vão pro git\n.indice.json\nsessoes/\n';
+const GITIGNORE = '# Derived index and automatic records: rebuildable, not committed\n.indice.json\nsessoes/\n';
 
 export function garantir(m) {
   for (const sub of ['conhecimento', 'modulos', 'handoffs', 'sessoes']) fs.mkdirSync(path.join(m, sub), { recursive: true });
@@ -106,7 +106,7 @@ export function ultimoHandoff(m) {
 export function lerDaMemoria(m, caminho) {
   const raiz = path.resolve(m);
   const p = path.resolve(raiz, /\.(md|json)$/.test(caminho) ? caminho : `${caminho}.md`);
-  if (!p.startsWith(raiz + path.sep)) throw new Error('caminho fora da memória');
+  if (!p.startsWith(raiz + path.sep)) throw new Error('path is outside the memory directory');
   return fs.readFileSync(p, 'utf8');
 }
 

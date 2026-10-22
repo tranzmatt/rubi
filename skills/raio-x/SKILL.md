@@ -1,15 +1,15 @@
 ---
-name: raio-x
-description: Mostra pra onde o token está indo (raio-X dos transcripts do Claude Code) e o que pesa no contexto fixo de toda sessão (auditoria). Use quando o usuário perguntar de gasto, custo, token, cache, limite de uso ou contexto.
+name: x-ray
+description: Show where tokens are going through a Claude Code transcript X-ray and audit the fixed context loaded in every session. Use when the user asks about usage, cost, tokens, caching, limits, or context.
 ---
 
-# Raio-X de gasto
+# Usage X-ray
 
-1. Rode `rubi_raio_x` (padrão 30 dias; use `dias` se o usuário pedir outro período).
-2. Rode `rubi_auditar` pra ver o contexto fixo do projeto atual.
-3. Responda em linguagem simples:
-   - De onde vem a maior parte do custo (normalmente leitura de cache em sessões longas).
-   - As 3 ações com maior economia, em ordem, cada uma com o número que justifica.
-   - O que o plugin já faz sozinho (compactação cedo + handoff, guarda de leitura) e o que depende do usuário (enxugar CLAUDE.md, desligar MCP que não usa).
+1. Run `rubi_raio_x` (30 days by default; set `dias` when the user requests another period).
+2. Run `rubi_auditar` to inspect the current project's fixed context.
+3. Explain in plain language:
+   - where most of the cost comes from, usually cache reads in long sessions;
+   - the three highest-impact savings, in order, with the number supporting each one;
+   - what the plugin handles automatically (early compaction, handoffs, and the read guard) and what the user controls (shortening CLAUDE.md and disabling unused MCP servers).
 
-Os custos são "tokens-equivalentes de input" (leitura de cache vale 0,1, escrita 1,25-2, output 5), não reais. Não invente valores em reais ou dólares.
+Costs are input-token equivalents: cache reads count as 0.1, cache writes as 1.25-2, and output as 5. They are not currency values. Do not invent dollar amounts.
