@@ -430,45 +430,54 @@ You need **Node 18+** (`node --version` to check; get it at [nodejs.org](https:/
 
 ### Claude Code, step by step
 
-**1. Install the plugin.** Open Claude Code in any project and type:
-
-```text
-/plugin marketplace add YURIBEDRAN/rubi
-/plugin install rubi@rubi
-```
-
-Restart Claude Code (exit and run `claude` again) so the hooks load.
-
-**2. Turn on early compaction** (recommended). In a terminal:
+**1. Clone the English fork once.** Keep this checkout in a permanent location outside the projects where you will use Rubi:
 
 ```bash
-git clone https://github.com/YURIBEDRAN/rubi
-cd rubi
+git clone --branch english https://github.com/tranzmatt/rubi.git ~/rubi
+```
+
+**2. Start Claude Code with the local plugin.** Run this from the codebase where you want Rubi:
+
+```bash
+cd /path/to/your-codebase
+claude --plugin-dir ~/rubi
+```
+
+The upstream marketplace commands install the original version, not this English fork. Until this fork has its own marketplace listing, use `--plugin-dir` whenever you start Claude Code.
+
+**3. Turn on early compaction** (recommended):
+
+```bash
+cd ~/rubi
 npm run install-rubi
 ```
 
 It asks two things: where to keep your **personal** notes (default `~/rubi-vault`) and when to compact (default `150000` tokens). It writes `CLAUDE_CODE_AUTO_COMPACT_WINDOW` into `~/.claude/settings.json`, keeping a backup in `settings.json.bak-rubi`. Undo any time with `npm run install-rubi -- --desfazer`.
 
-**3. Check that it works.** Open Claude Code inside a project that uses git.
+**4. Check that it works.** Open Claude Code inside a project that uses Git.
 
 | Try this | You should see |
 |---|---|
 | Start a session | A `.rubi/` folder appears in the project, with `mapa.md` listing your modules and central files |
 | Ask: *"what do you know about this project's structure?"* | Claude answers using the map (modules, central files) without exploring first |
-| Ask: *"use Rubi to register a decision: we use Postgres because the client already runs it"* | `criado: conhecimento/decisao-...md`, and the file appears in `.rubi/conhecimento/` |
+| Ask: *"use Rubi to register a decision: we use Postgres because the client already runs it"* | `created: conhecimento/decisao-...md`, and the file appears in `.rubi/conhecimento/` |
 | Exit, start a **new** session and ask *"why did we choose Postgres?"* | Claude answers from memory: the recall hook injected the decision |
-| Type `/rubi:raio-x` | A breakdown of where your tokens went in the last 30 days |
+| Type `/rubi:x-ray` | A breakdown of where your tokens went in the last 30 days |
 
 > [!NOTE]
 > `.rubi/` is meant to be committed so your team shares the memory. Its own `.gitignore` already leaves out the derived index and the automatic session records. If you'd rather keep it private, add `.rubi/` to your project's `.gitignore`.
 
-To try Rubi without installing it: `claude --plugin-dir path/to/rubi`.
-
 ### Claude Desktop, step by step
 
-**1.** Download **`rubi.mcpb`** from [Releases](https://github.com/YURIBEDRAN/rubi/releases/latest).
+**1. Build the extension from the English fork:**
 
-**2.** Double-click the file, or drag it into Claude Desktop under **Settings → Extensions**, and click **Install**.
+```bash
+git clone --branch english https://github.com/tranzmatt/rubi.git ~/rubi
+cd ~/rubi
+npm run package
+```
+
+**2.** Double-click `~/rubi/dist/rubi.mcpb`, or drag it into Claude Desktop under **Settings → Extensions**, and click **Install**.
 
 **3.** Optionally choose a vault folder. Pick an **empty folder used only by Rubi** (for example `Documents/Rubi`) or an Obsidian vault. Leave it blank to use `~/rubi-vault`. Don't point it at a busy folder like Downloads.
 
@@ -490,9 +499,9 @@ In the Desktop app, Rubi provides the **memory**: the knowledge graph, hybrid se
 Rubi's core is a standard **MCP server**, so it works in any coding agent that speaks MCP, with the vendor's models or with **local models**. One command connects it:
 
 ```bash
-git clone https://github.com/YURIBEDRAN/rubi
+git clone --branch english https://github.com/tranzmatt/rubi.git ~/rubi
 cd your-project
-npm --prefix /path/to/rubi run connect -- codex   # or: gemini, cursor, vscode, windsurf, cline, opencode, continue, goose, zed
+npm --prefix ~/rubi run connect -- codex   # or: gemini, cursor, vscode, windsurf, cline, opencode, continue, goose, zed
 ```
 
 For each agent it registers the MCP server in that agent's config (keeping a `.bak-rubi` backup), writes the instructions into the file the agent reads on its own (`AGENTS.md`, `GEMINI.md`, `.cursor/rules/rubi.mdc`...) and, where the agent supports hooks that feed context to the model, turns on the **map at session start** and the **automatic recall** on every request. Formats that are risky to edit automatically (YAML, JSON with comments) are printed for you to paste. Use `--so-mostrar` to only print, never write. `--listar` shows all agents.
